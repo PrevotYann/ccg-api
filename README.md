@@ -1,4 +1,4 @@
-# RealDebridARR API
+# CCG API
 
 ## Before running the API
 `pip install -r requirements.txt`
