@@ -25,10 +25,6 @@ app = FastAPI(
     openapi_url="/api/openapi.json"
 )
 
-app.include_router(cardsets.router)
-app.include_router(ebay.router)
-app.include_router(users.router)
-
 origins = ["*"]
 
 app.add_middleware(
@@ -39,12 +35,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(cardsets.router)
+app.include_router(ebay.router)
+app.include_router(users.router)
 
 @app.get("/")
 async def docs_redirect():
-    response = RedirectResponse(url="/docs")
+    response = RedirectResponse(url="/api/docs")
     return response
 
 
 if __name__ == "__main__":
-  uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+      uvicorn.run(app)
