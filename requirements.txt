@@ -9,3 +9,4 @@ pymysql
 python-jose
 requests
 python-multipart
+a2wsgi
