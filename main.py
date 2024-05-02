@@ -22,7 +22,8 @@ app = FastAPI(
     description="API for CCG APP",
     version="0.0.1",
     docs_url="/api/docs",
-    openapi_url="/api/openapi.json"
+    openapi_url="/api/openapi.json",
+    tagsMetadata=tagsMetadata
 )
 
 origins = ["*"]
@@ -45,8 +46,8 @@ async def docs_redirect():
     return response
 
 @app.get("/hello")
-async def docs_redirect():
+def hello():
     return("Hello World!")
 
 if __name__ == "__main__":
-      uvicorn.run(app)
+    uvicorn.run("module_name:app", host="127.0.0.1", port=8000, reload=True)
