@@ -26,7 +26,7 @@ headers_US = {
     "/search/us/",
     tags=["ebay"],
 )
-def ebay_search_query_usa(query: str) -> list[EbayItemSummary]:
+def ebay_search_query_usa(query: str) :#-> list[EbayItemSummary]:
     response = requests.get(
         url="https://api.ebay.com/buy/browse/v1/item_summary/search?q=%s&limit=200"
         % query,

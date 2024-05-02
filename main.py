@@ -44,6 +44,9 @@ async def docs_redirect():
     response = RedirectResponse(url="/api/docs")
     return response
 
+@app.get("/hello")
+async def docs_redirect():
+    return("Hello World!")
 
 if __name__ == "__main__":
       uvicorn.run(app)
