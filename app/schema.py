@@ -90,3 +90,23 @@ class EbayItemSummary(BaseModel):
     topRatedBuyingExperience: Optional[bool] = None
     priorityListing: Optional[bool] = None
     listingMarketplaceId: Optional[str] = None
+
+class UserBase(BaseModel):
+    username: str
+
+class UserCreate(BaseModel):
+    username: str
+    email: str
+    password: str
+
+class User(BaseModel):
+    id: int
+    username: str
+    email: str
+
+    class Config:
+        orm_mode = True
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str

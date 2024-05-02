@@ -3,5 +3,7 @@ pydantic
 SQLAlchemy
 gunicorn @ git+https://github.com/benoitc/gunicorn.git@ab9c8301cb9ae573ba597154ddeea16f0326fc15
 uvicorn
-mysql-connector
-xmltodict
+bcrypt
+passlib[bcrypt]
+pymysql
+python-jose

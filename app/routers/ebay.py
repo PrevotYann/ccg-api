@@ -26,7 +26,7 @@ headers_US = {
     "/search/us/",
     tags=["ebay"],
 )
-def ebay_search_query_usa(query: str) -> list[EbayItemSummary] | None:
+def ebay_search_query_usa(query: str) -> list[EbayItemSummary]:
     response = requests.get(
         url="https://api.ebay.com/buy/browse/v1/item_summary/search?q=%s&limit=200"
         % query,
@@ -47,7 +47,7 @@ def ebay_search_query_usa(query: str) -> list[EbayItemSummary] | None:
     "/search/fr/",
     tags=["ebay"],
 )
-def ebay_search_query_france(query: str) -> list[EbayItemSummary] | None:
+def ebay_search_query_france(query: str) -> list[EbayItemSummary]:
     response = requests.get(
         url="https://api.ebay.com/buy/browse/v1/item_summary/search?q=%s&limit=200"
         % query,
@@ -70,7 +70,7 @@ def ebay_search_query_france(query: str) -> list[EbayItemSummary] | None:
 )
 def ebay_search_query_with_card_quality_france(
     query: str, quality: int
-) -> list[EbayItemSummary] | None:
+) -> list[EbayItemSummary]:
     response = requests.get(
         url="https://api.ebay.com/buy/browse/v1/item_summary/search?q=%s&limit=200"
         % (query + " " + QUALITIES[quality]),
@@ -93,7 +93,7 @@ def ebay_search_query_with_card_quality_france(
 )
 def ebay_search_query_with_card_quality_usa(
     query: str, quality: int
-) -> list[EbayItemSummary] | None:
+) -> list[EbayItemSummary]:
     response = requests.get(
         url="https://api.ebay.com/buy/browse/v1/item_summary/search?q=%s&limit=200"
         % (query + " " + QUALITIES[quality]),
