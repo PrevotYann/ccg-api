@@ -1,5 +1,6 @@
 import os, sys
 
+# Environment setup
 virtenv = os.path.expanduser('~') + '/venv/'
 virtualenv = os.path.join(virtenv, 'bin/activate_this.py')
 try:
@@ -13,6 +14,8 @@ except IOError:
 sys.path.append(os.path.expanduser('~'))
 sys.path.append(os.path.expanduser('~') + '/ROOT/')
 
+# Importing and wrapping the ASGI app with ASGIMiddleware to make it WSGI compatible
 from main import app
 from a2wsgi import ASGIMiddleware
-application = ASGIMiddleware(app.app)
+
+application = ASGIMiddleware(app)
