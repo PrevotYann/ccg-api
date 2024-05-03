@@ -1,31 +1,23 @@
 from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, scoped_session
+from sqlalchemy.orm import sessionmaker
 
-
-DATABASE = 'mysql+pymysql://prya2699:65EH-8MbE-qVu$@plume.o2switch.net:3306/prya2699_ccgapi'
+DATABASE_URL = "mysql+pymysql://prya2699:65EH-8MbE-qVu$@plume.o2switch.net:3306/prya2699_ccgapi"
 
 engine = create_engine(
-    DATABASE,
-    encoding='utf-8',
-    echo=True
-)
+    DATABASE_URL,
+    connect_args={"connect_timeout": 10},
+    pool_pre_ping=True,
+    pool_size=10,
+    max_overflow=20,
+    pool_timeout=30,
+    pool_recycle=3600)
 
-SessionLocal = scoped_session(
-    sessionmaker(
-        autocommit=False,
-        autoflush=False,
-        bind=engine
-    )
-)
-
-Base = declarative_base()
-Base.query = SessionLocal.query_property()
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
 def get_db():
+    db = SessionLocal()
     try:
-        db = SessionLocal()
         yield db
     finally:
         db.close()
