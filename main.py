@@ -1,10 +1,15 @@
 import uvicorn
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 
+from sqlalchemy.orm import Session
+
+
 from app.routers import cardsets, ebay, users
+from app.database import get_db
+from app.models import Cardset
 
 tagsMetadata = [
     {
@@ -48,6 +53,13 @@ async def docs_redirect():
 @app.get("/hello")
 def hello():
     return("Hello World!")
+
+@app.get("/cardsets/main",
+            tags=["cardsets"]
+)
+def get_all_cardsets(db: Session = Depends(get_db)):
+    return db.query(Cardset).all()
+
 
 if __name__ == "__main__":
     uvicorn.run("module_name:app", host="127.0.0.1", port=8000, reload=True)
