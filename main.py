@@ -54,7 +54,7 @@ async def docs_redirect():
 def hello():
     return("Hello World!")
 
-@app.get("/cardsets/main",
+@app.get("/main/cardsets",
             tags=["cardsets"]
 )
 def get_all_cardsets(db: Session = Depends(get_db)):
