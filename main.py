@@ -40,10 +40,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(yugioh_cards.router)
 app.include_router(cardsets.router)
 app.include_router(ebay.router)
 app.include_router(users.router)
-app.include_router(yugioh_cards.router)
 
 @app.get("/")
 async def docs_redirect():

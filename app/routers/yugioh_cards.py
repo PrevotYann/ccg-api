@@ -6,6 +6,7 @@ from app.models import Cardset, CardYuGiOh
 
 router = APIRouter(prefix="/cards/yugioh")
 
+
 @router.get("/id/{card_id}",
             tags=["cards"]
 )
@@ -20,7 +21,7 @@ def get_yugioh_card_from_id(card_id: int, db: Session = Depends(get_db)):
 @router.get("/set_number/{set_number}",
             tags=["cards"]
 )
-def get_yugioh_card_from_id(set_number: str, db: Session = Depends(get_db)):
+def get_yugioh_card_from_set_number(set_number: str, db: Session = Depends(get_db)):
     return (
         db.query(CardYuGiOh)
         .filter(CardYuGiOh.set_number == set_number)
@@ -43,11 +44,11 @@ def get_yugioh_cards_from_cardset_id(cardset_id: int, db: Session = Depends(get_
 @router.get("/cardset/prefix/{cardset_prefix}",
             tags=["cards"]
 )
-def get_yugioh_cards_from_cardset_id(cardset_id: int, db: Session = Depends(get_db)):
+def get_yugioh_cards_from_cardset_prefix(cardset_prefix: str, db: Session = Depends(get_db)):
     return (
         db.query(CardYuGiOh)
         .join(Cardset, CardYuGiOh.cardsetId == Cardset.id)
-        .filter(Cardset.id == cardset_id)
+        .filter(Cardset.prefix == cardset_prefix)
         .all()
     )
 
@@ -55,7 +56,7 @@ def get_yugioh_cards_from_cardset_id(cardset_id: int, db: Session = Depends(get_
 @router.get("/cardset/prefix/{cardset_prefix}/language/{language_code}",
             tags=["cards"]
 )
-def get_yugioh_cards_from_cardset_id(cardset_prefix: str, language_code: str, db: Session = Depends(get_db)):
+def get_yugioh_cards_from_cardset_prefix_and_language(cardset_prefix: str, language_code: str, db: Session = Depends(get_db)):
     return (
         db.query(CardYuGiOh)
         .join(Cardset, CardYuGiOh.cardsetId == Cardset.id)
