@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import cardsets, ebay, users
+from app.routers import cardsets, ebay, pokemon_cards, users, yugioh_cards
 
 tagsMetadata = [
     {
@@ -14,6 +14,10 @@ tagsMetadata = [
     {
         "name": "cardsets",
         "description": "cardset routes",
+    },
+    {
+        "name": "cards",
+        "description": "cards routes for all CCGs",
     },
 ]
 
@@ -39,6 +43,7 @@ app.add_middleware(
 app.include_router(cardsets.router)
 app.include_router(ebay.router)
 app.include_router(users.router)
+app.include_router(yugioh_cards.router)
 
 @app.get("/")
 async def docs_redirect():

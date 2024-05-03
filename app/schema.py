@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from pydantic import BaseModel
 
@@ -110,3 +110,73 @@ class User(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str
+
+
+class CardsetSchema(BaseModel):
+    id: Optional[int]
+    gameId: Optional[int]
+    name: Optional[str]
+    prefix: Optional[str]
+    language: Optional[str]
+    official_card_count_pokemon: Optional[int]
+    total_card_count_pokemon: Optional[int]
+    symbol_pokemon: Optional[str]
+    logo_pokemon: Optional[str]
+
+class PokemonCardSchema(BaseModel):
+    id: Optional[str]
+    name: Optional[str]
+    illustrator: Optional[str]
+    image: Optional[str]
+    local_id: Optional[str]
+    rarity: Optional[str]
+    set_id: Optional[int]
+    set_details: Optional[CardsetSchema]
+    variant_normal: Optional[bool]
+    variant_reverse: Optional[bool]
+    variant_holo: Optional[bool]
+    variant_firstEdition: Optional[bool]
+    variant_wPromo: Optional[bool]
+    hp: Optional[int]
+    types: Optional[List[str]]
+    evolve_from: Optional[str]
+    description: Optional[str]
+    stage: Optional[str]
+    attacks: Optional[List[Dict[str, Optional[str]]]]
+    weaknesses: Optional[List[Dict[str, str]]]
+    retreat: Optional[int]
+    regulation_mark: Optional[str]
+    legal: Optional[Dict[str, bool]]
+
+    class Config:
+        from_attributes = True
+
+class YuGiOhCardSchema(BaseModel):
+    id: Optional[int]
+    cardsetId: int
+    gameId: int
+    language: Optional[str]
+    konami_id: Optional[int]
+    password: Optional[int]
+    name: str
+    text: Optional[str]
+    images: Optional[str]
+    rarity: Optional[str]
+    card_type: Optional[str]
+    monster_type_line: Optional[str]
+    attribute: Optional[str]
+    level: Optional[int]
+    set_number: Optional[str]
+    atk: Optional[str]
+    def_: Optional[str]
+    materials: Optional[str]
+    series: Optional[str]
+    limit_regulation_tcg: Optional[str]
+    limit_regulation_ocg: Optional[str]
+    pendulum_scale: Optional[int]
+    pendulum_effect: Optional[str]
+    link_arrows: Optional[str]
+    property: Optional[str]
+
+    class Config:
+        from_attributes = True
