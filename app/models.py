@@ -30,7 +30,7 @@ class Cardset(Base):
     symbol_pokemon = Column(String(250), nullable=True)
     logo_pokemon = Column(String(250), nullable=True)
 
-class PokemonCard(Base):
+class CardPokemon(Base):
     __tablename__ = 'cards_pokemon'
 
     id = Column(String, primary_key=True)
@@ -39,7 +39,7 @@ class PokemonCard(Base):
     image = Column(String, nullable=True)
     local_id = Column(String, nullable=True)
     rarity = Column(String, nullable=True)
-    set_id = Column(Integer, nullable=True)
+    cardset_id = Column(Integer, nullable=True)
     variant_normal = Column(Boolean, nullable=True)
     variant_reverse = Column(Boolean, nullable=True)
     variant_holo = Column(Boolean, nullable=True)
@@ -55,6 +55,10 @@ class PokemonCard(Base):
     retreat = Column(Integer, nullable=True)
     regulation_mark = Column(String, nullable=True)
     legal = Column(Text, nullable=True)
+    tcgdex_id = Column(String, nullable=True)
+    dexId = Column(String, nullable=True)
+    gameId = Column(Integer)
+    language = Column(String)
 
 class CardYuGiOh(Base):
     __tablename__ = 'cards_yugioh'

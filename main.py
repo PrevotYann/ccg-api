@@ -40,6 +40,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(pokemon_cards.router)
 app.include_router(yugioh_cards.router)
 app.include_router(cardsets.router)
 app.include_router(ebay.router)

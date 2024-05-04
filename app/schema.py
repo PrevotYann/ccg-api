@@ -130,7 +130,7 @@ class PokemonCardSchema(BaseModel):
     image: Optional[str]
     local_id: Optional[str]
     rarity: Optional[str]
-    set_id: Optional[int]
+    cardset_id: Optional[int]
     set_details: Optional[CardsetSchema]
     variant_normal: Optional[bool]
     variant_reverse: Optional[bool]
@@ -146,7 +146,10 @@ class PokemonCardSchema(BaseModel):
     weaknesses: Optional[List[Dict[str, str]]]
     retreat: Optional[int]
     regulation_mark: Optional[str]
-    legal: Optional[Dict[str, bool]]
+    tcgdex_id: Optional[str]
+    dexId: Optional[str]
+    gameId: int
+    language: str
 
     class Config:
         from_attributes = True

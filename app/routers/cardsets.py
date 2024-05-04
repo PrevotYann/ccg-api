@@ -4,7 +4,10 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import Cardset
 
+
 router = APIRouter(prefix="/cardsets")
+
+
 
 @router.get("/",
             tags=["cardsets"]
@@ -12,8 +15,37 @@ router = APIRouter(prefix="/cardsets")
 def get_all_cardsets(db: Session = Depends(get_db)):
     return db.query(Cardset).all()
 
+
 @router.get("/{cardset_id}",
             tags=["cardsets"]
 )
 def get_cardset_by_id(cardset_id: int, db: Session = Depends(get_db)):
     return db.query(Cardset).filter(Cardset.id == cardset_id).one_or_none()
+
+
+@router.get("/pokemon",
+            tags=["cardsets"]
+)
+def get_pokemon_cardsets(db: Session = Depends(get_db)):
+    return db.query(Cardset).filter(Cardset.gameId == 2).all()
+
+
+@router.get("/pokemon/{language}",
+            tags=["cardsets"]
+)
+def get_cardset_by_id(language: str, db: Session = Depends(get_db)):
+    return db.query(Cardset).filter(Cardset.language == language, Cardset.gameId == 2).all()
+
+
+@router.get("/yugioh",
+            tags=["cardsets"]
+)
+def get_yugioh_cardsets(db: Session = Depends(get_db)):
+    return db.query(Cardset).filter(Cardset.gameId == 1).all()
+
+
+@router.get("/yugioh/{language}",
+            tags=["cardsets"]
+)
+def get_yugioh_cardsets_by_language(language: str, db: Session = Depends(get_db)):
+    return db.query(Cardset).filter(Cardset.language == language, Cardset.gameId == 1).all()
