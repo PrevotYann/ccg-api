@@ -10,7 +10,7 @@ router = APIRouter(prefix="/cards/yugioh")
 
 
 
-@router.get("/search/{query:path}", tags=["cards"])
+@router.get("/search", tags=["cards"])
 def get_yugioh_card_from_query(query: str, db: Session = Depends(get_db)):
     # Attempt to split the query into name and set_number parts
     parts = query.split()

@@ -10,7 +10,7 @@ router = APIRouter(prefix="/cards/pokemon")
 
 
 
-@router.get("/search/{query:path}", tags=["cards"])
+@router.get("/search", tags=["cards"])
 def get_pokemon_card_from_query(query: str, db: Session = Depends(get_db)):
     # Split the query using space to examine the potential parts
     parts = query.split()
