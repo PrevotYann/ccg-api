@@ -1,38 +1,50 @@
 from fastapi import APIRouter, Depends
-from sqlalchemy import or_, and_
+from sqlalchemy import or_, and_, func
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import Cardset, CardYuGiOh
 
+import re
 
 router = APIRouter(prefix="/cards/yugioh")
+
+
+def normalize_text(text):
+    """Normalize text by removing punctuation and lowering the case."""
+    text = re.sub(r'[^\w\s]', '', text) 
+    return text.lower()
 
 
 
 @router.get("/search", tags=["cards"])
 def get_yugioh_card_from_query(query: str, db: Session = Depends(get_db)):
-    # Attempt to split the query into name and set_number parts
-    parts = query.split()
-    name_query = " ".join(parts[:-1])  # all but the last part as name
-    set_number_query = parts[-1] if len(parts) > 1 else None  # last part as set_number
+    # Normalize the query by removing special characters and lowering the case
+    normalized_query = normalize_text(query)
 
-    # Filter query building based on the presence of name and set_number parts
-    if set_number_query and name_query:
+    # Split the normalized query into parts to check for potential set numbers
+    parts = normalized_query.split()
+    name_query = " ".join(parts[:-1]) if len(parts) > 1 else normalized_query
+    set_number_query = parts[-1] if len(parts) > 1 else None
+
+    # Define a SQL expression for cleaning database fields
+    clean_name = func.replace(func.replace(func.replace(CardYuGiOh.name, ',', ''), '.', ''), '-', '')
+    clean_set_number = func.replace(func.replace(func.replace(CardYuGiOh.set_number, ',', ''), '.', ''), '-', '')
+
+    # Build the query based on the presence of name and set number
+    if set_number_query:
         search_results = db.query(CardYuGiOh).filter(
             or_(
-                and_(CardYuGiOh.name.ilike(f"%{name_query}%"), CardYuGiOh.set_number.ilike(f"%{set_number_query}%")),
-                CardYuGiOh.name.ilike(f"%{query}%"), 
-                CardYuGiOh.set_number.ilike(f"%{query}%")
+                and_(
+                    func.lower(clean_name).like(f"%{name_query}%"),
+                    func.lower(clean_set_number).like(f"%{set_number_query}%")
+                ),
+                func.lower(clean_name).like(f"%{normalized_query}%")
             )
         ).all()
     else:
-        # This block executes if there is no clear distinction into name and set number
         search_results = db.query(CardYuGiOh).filter(
-            or_(
-                CardYuGiOh.name.ilike(f"%{query}%"), 
-                CardYuGiOh.set_number.ilike(f"%{query}%")
-            )
+            func.lower(clean_name).like(f"%{normalized_query}%")
         ).all()
 
     return search_results
