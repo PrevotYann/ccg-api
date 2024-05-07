@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime
 from typing import Dict, List, Optional
 
 from pydantic import BaseModel
@@ -91,13 +92,16 @@ class EbayItemSummary(BaseModel):
     priorityListing: Optional[bool] = None
     listingMarketplaceId: Optional[str] = None
 
+
 class UserBase(BaseModel):
     username: str
+
 
 class UserCreate(BaseModel):
     username: str
     email: str
     password: str
+
 
 class User(BaseModel):
     id: int
@@ -106,6 +110,7 @@ class User(BaseModel):
 
     class Config:
         from_attributes = True
+
 
 class Token(BaseModel):
     access_token: str
@@ -122,6 +127,7 @@ class CardsetSchema(BaseModel):
     total_card_count_pokemon: Optional[int]
     symbol_pokemon: Optional[str]
     logo_pokemon: Optional[str]
+
 
 class PokemonCardSchema(BaseModel):
     id: Optional[str]
@@ -154,6 +160,7 @@ class PokemonCardSchema(BaseModel):
     class Config:
         from_attributes = True
 
+
 class YuGiOhCardSchema(BaseModel):
     id: Optional[int]
     cardsetId: int
@@ -183,3 +190,30 @@ class YuGiOhCardSchema(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class Item(BaseModel):
+    id: Optional[int]
+    source_table: str
+    specific_id: int
+    
+    class Config:
+        from_attributes = True
+
+
+class UserItem(BaseModel):
+    id: Optional[int]
+    user_id: int
+    item_id: int
+    quantity: int
+    added_date: datetime
+    condition: Optional[str]
+    extras: Optional[str]
+    is_first_edition: Optional[bool]
+
+
+class UserItemInput(BaseModel):
+    quantity: int
+    condition: Optional[str]
+    extras: Optional[str]
+    is_first_edition: Optional[bool]

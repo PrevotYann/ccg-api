@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, Column, Integer, String, Boolean, Text
+from sqlalchemy import create_engine, Boolean, Column, DateTime, Integer, String, Text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
@@ -9,6 +9,7 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
 
+
 class User(Base):
     __tablename__ = "users"
     
@@ -16,6 +17,7 @@ class User(Base):
     username = Column(String(250), unique=True, index=True)
     email = Column(String, unique=True, index=True)
     hashed_password = Column(String(250))
+
 
 class Cardset(Base):
     __tablename__ = "cardsets"
@@ -29,6 +31,7 @@ class Cardset(Base):
     total_card_count_pokemon = Column(Integer, nullable=True)
     symbol_pokemon = Column(String(250), nullable=True)
     logo_pokemon = Column(String(250), nullable=True)
+
 
 class CardPokemon(Base):
     __tablename__ = 'cards_pokemon'
@@ -60,6 +63,7 @@ class CardPokemon(Base):
     gameId = Column(Integer)
     language = Column(String)
 
+
 class CardYuGiOh(Base):
     __tablename__ = 'cards_yugioh'
 
@@ -88,3 +92,25 @@ class CardYuGiOh(Base):
     pendulum_effect = Column(Text, nullable=True)
     link_arrows = Column(Text, nullable=True)
     property = Column(String(250), nullable=True)
+
+
+class Item(Base):
+    __tablename__ = 'items'
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    source_table = Column(String(255), nullable=False) #tablename
+    specific_id = Column(Integer, nullable=False) #id of the tablename
+
+
+class UserItem(Base):
+    __tablename__ = 'user_items'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, nullable=False)
+    item_id = Column(Integer, nullable=False)
+    quantity = Column(Integer, nullable=False)
+    added_date = Column(DateTime, nullable=False)
+    condition = Column(String(100), nullable=True) #cards : POOR, LIGHT_PLAYED, GOOD, EXCELLENT, NEAR_MINT, MINT ; others :POOR, GOOD, EXCELLENT, SEALED
+    extras = Column(Text, nullable=True)
+    is_first_edition = Column(Boolean, nullable=True)
+

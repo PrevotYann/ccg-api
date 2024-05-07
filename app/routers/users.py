@@ -30,7 +30,6 @@ ALGORITHM = "HS256"
 ###################### ROUTES ######################
 ####################################################
 ####################################################
-
 # Register
 @router.post("/users/register", response_model=UserSchema)
 async def register_user(user: UserCreate, db: Session = Depends(get_db)):
@@ -43,6 +42,7 @@ async def register_user(user: UserCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(new_user)
     return new_user
+
 
 # Token generation for login
 @router.post("/api/token", response_model=Token)
@@ -57,23 +57,26 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     access_token = create_access_token(data={"sub": user.username})
     return {"access_token": access_token, "token_type": "bearer"}
 
+
 ####################################################
 ####################################################
 #################### FUNCTIONS #####################
 ####################################################
 ####################################################
-
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
 
+
 def get_password_hash(password):
     return pwd_context.hash(password)
+
 
 def authenticate_user(db: Session, username: str, password: str):
     user = db.query(User).filter(User.username == username).first()
     if not user or not verify_password(password, user.hashed_password):
         return False
     return user
+
 
 def create_access_token(data: dict, expires_delta: timedelta = None):
     to_encode = data.copy()
