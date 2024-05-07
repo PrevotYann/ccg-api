@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-import datetime
 from typing import Dict, List, Optional
 
 from pydantic import BaseModel
 
+from datetime import datetime
 
 class Category(BaseModel):
     categoryId: Optional[str] = None
