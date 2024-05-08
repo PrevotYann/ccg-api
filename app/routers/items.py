@@ -67,7 +67,7 @@ def get_existing_item(
 
 
 @router.post(
-    "/{table_name}/{specific_id}/user/{username}",
+    "/table/{table_name}/item/{specific_id}/user/{username}",
     tags=["items"]
 )
 def add_item_to_user_collection(
@@ -77,6 +77,10 @@ def add_item_to_user_collection(
     item_input: UserItemInput,
     db: Session = Depends(get_db)
 ):
+    print(table_name)
+    print(specific_id)
+    print(username)
+    print(item_input)
     existing_item = get_item_from_source_table_and_id(
         origin_table_name=table_name,
         origin_id=specific_id,
