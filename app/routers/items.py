@@ -82,6 +82,49 @@ def add_item_to_user_collection(
     db.commit()
 
 
+@router.delete("/{item_id}/user/{username}/delete")
+def delete_user_item_for_user_by_id(
+    item_id: int, username: str, db: Session = Depends(get_db)
+):
+    user = db.query(User).filter(User.username == username).one_or_none()
+
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    user_item_to_delete = db.query(UserItem).filter(
+        UserItem.id == item_id, UserItem.user_id == user.id
+    )
+
+    db.delete(user_item_to_delete)
+    db.commit()
+
+
+@router.put("/{item_id}/user/{username}")
+def edit_user_item_for_user_by_id(
+    item_id: int,
+    username: str,
+    item_input: UserItemInput,
+    db: Session = Depends(get_db),
+):
+    user = db.query(User).filter(User.username == username).one_or_none()
+
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    user_item_to_edit = (
+        db.query(UserItem)
+        .filter(UserItem.id == item_id, UserItem.user_id == user.id)
+        .one()
+    )
+
+    user_item_to_edit.quantity = item_input.quantity
+    user_item_to_edit.condition = item_input.condition
+    user_item_to_edit.extras = item_input.extras
+    user_item_to_edit.is_first_edition = item_input.is_first_edition
+
+    db.commit()
+
+
 #################################
 #################################
 ########### FUNCTIONS ###########

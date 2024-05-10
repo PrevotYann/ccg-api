@@ -6,6 +6,7 @@ from pydantic import BaseModel
 
 from datetime import datetime
 
+
 class Category(BaseModel):
     categoryId: Optional[str] = None
     categoryName: Optional[str] = None
@@ -196,7 +197,7 @@ class Item(BaseModel):
     id: Optional[int]
     source_table: str
     specific_id: int
-    
+
     class Config:
         from_attributes = True
 
@@ -213,6 +214,7 @@ class UserItem(BaseModel):
 
 
 class UserItemInput(BaseModel):
+    id: Optional[int]
     quantity: int
     condition: Optional[str]
     extras: Optional[str]
