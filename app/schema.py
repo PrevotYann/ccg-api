@@ -203,7 +203,7 @@ class Item(BaseModel):
 
 
 class UserItem(BaseModel):
-    id: Optional[int]
+    id: Optional[int] = None
     user_id: int
     item_id: int
     quantity: int
@@ -214,7 +214,6 @@ class UserItem(BaseModel):
 
 
 class UserItemInput(BaseModel):
-    id: Optional[int]
     quantity: int
     condition: Optional[str]
     extras: Optional[str]
