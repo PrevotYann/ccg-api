@@ -24,7 +24,7 @@ def get_yugioh_card_from_query(query: str, db: Session = Depends(get_db)):
     # Split the normalized query into parts to check for potential set numbers
     parts = normalized_query.split()
     name_query = " ".join(parts[:-1]) if len(parts) > 1 else None
-    set_number_query = parts[-1] if parts else None
+    set_number_query = parts[-1] if len(parts) > 1 else None
 
     # Define a SQL expression for cleaning database fields
     clean_name = func.replace(
@@ -34,9 +34,12 @@ def get_yugioh_card_from_query(query: str, db: Session = Depends(get_db)):
         func.replace(func.replace(CardYuGiOh.set_number, ",", ""), ".", ""), "-", ""
     )
 
-    # Build the query based on the presence of name and set number
+    # Improved handling for name-only searches
+    if not set_number_query:
+        name_query = normalized_query
+
+    # Query logic
     if name_query and set_number_query:
-        # Search by both name and set number
         search_results = (
             db.query(CardYuGiOh)
             .filter(
@@ -51,14 +54,12 @@ def get_yugioh_card_from_query(query: str, db: Session = Depends(get_db)):
             .all()
         )
     elif set_number_query:
-        # Search by set number only
         search_results = (
             db.query(CardYuGiOh)
             .filter(func.lower(clean_set_number).like(f"%{set_number_query}%"))
             .all()
         )
     else:
-        # Fallback to searching by name only
         search_results = (
             db.query(CardYuGiOh)
             .filter(func.lower(clean_name).like(f"%{normalized_query}%"))
