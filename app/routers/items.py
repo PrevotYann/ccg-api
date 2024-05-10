@@ -1,9 +1,10 @@
 import datetime
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import cast, Integer
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import Item, User, UserItem
+from app.models import Item, User, UserItem, get_class_by_tablename
 from app.schema import Item as ItemSchema, UserItem as UserItemSchema, UserItemInput
 
 
@@ -15,7 +16,9 @@ router = APIRouter(prefix="/items")
 ########### ENDPOINTS ###########
 #################################
 #################################
-@router.post("/{table_name}/{specific_id}", response_model=ItemSchema, tags=["items"])
+@router.post(
+    "/table/{table_name}/item/{specific_id}", response_model=ItemSchema, tags=["items"]
+)
 def create_new_item(table_name: str, specific_id: int, db: Session = Depends(get_db)):
     existing_item = get_item_from_source_table_and_id(
         origin_table_name=table_name, origin_id=specific_id, db=db
@@ -32,7 +35,9 @@ def create_new_item(table_name: str, specific_id: int, db: Session = Depends(get
         raise HTTPException(status_code=402, detail="Item already exists")
 
 
-@router.get("/{table_name}/{specific_id}", response_model=ItemSchema, tags=["items"])
+@router.get(
+    "/table/{table_name}/item/{specific_id}", response_model=ItemSchema, tags=["items"]
+)
 def get_existing_item(table_name: str, specific_id: int, db: Session = Depends(get_db)):
     existing_item = get_item_from_source_table_and_id(
         origin_table_name=table_name, origin_id=specific_id, db=db
@@ -123,6 +128,49 @@ def edit_user_item_for_user_by_id(
     user_item_to_edit.is_first_edition = item_input.is_first_edition
 
     db.commit()
+
+
+@router.get("/user/{username}", tags=["items"])
+def query_items_with_dynamic_join(username: str, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.username == username).one_or_none()
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Retrieve items and their corresponding user_items entries
+    user_items = (
+        db.query(Item, UserItem)
+        .select_from(UserItem)
+        .join(Item, Item.id == UserItem.item_id)
+        .filter(UserItem.user_id == user.id)
+        .all()
+    )
+
+    results = []
+
+    for item, user_item in user_items:
+        table_class = get_class_by_tablename(item.source_table)
+        if table_class is not None:
+            source_item = (
+                db.query(table_class).filter(table_class.id == item.specific_id).first()
+            )
+            if source_item:
+                # Create a dictionary that combines item, user_item, and source_item details
+                item_details = {
+                    "item_id": item.id,
+                    "source_table": item.source_table,
+                    "specific_id": item.specific_id,
+                    "source_item_details": source_item,  # Assuming this is serializable; otherwise, customize serialization
+                    "user_item_details": {
+                        "quantity": user_item.quantity,
+                        "condition": user_item.condition,
+                        "added_date": user_item.added_date.isoformat(),
+                        "extras": user_item.extras,
+                        "is_first_edition": user_item.is_first_edition,
+                    },
+                }
+                results.append(item_details)
+
+    return results
 
 
 #################################

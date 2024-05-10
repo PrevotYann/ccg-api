@@ -2,7 +2,9 @@ from sqlalchemy import create_engine, Boolean, Column, DateTime, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-DATABASE_URL = "mysql+pymysql://root:%40Danganronpa47@91.199.227.99:10965/ccgapi?charset=utf8"
+DATABASE_URL = (
+    "mysql+pymysql://root:%40Danganronpa47@91.199.227.99:10965/ccgapi?charset=utf8"
+)
 
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -12,7 +14,7 @@ Base = declarative_base()
 
 class User(Base):
     __tablename__ = "users"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String(250), unique=True, index=True)
     email = Column(String, unique=True, index=True)
@@ -34,7 +36,7 @@ class Cardset(Base):
 
 
 class CardPokemon(Base):
-    __tablename__ = 'cards_pokemon'
+    __tablename__ = "cards_pokemon"
 
     id = Column(String, primary_key=True)
     name = Column(String, nullable=True)
@@ -65,7 +67,7 @@ class CardPokemon(Base):
 
 
 class CardYuGiOh(Base):
-    __tablename__ = 'cards_yugioh'
+    __tablename__ = "cards_yugioh"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     cardsetId = Column(Integer, nullable=False)
@@ -75,7 +77,7 @@ class CardYuGiOh(Base):
     password = Column(Integer, nullable=True)
     name = Column(String(250), nullable=False)
     text = Column(Text, nullable=True)
-    images = Column(Text, nullable=True, comment='LIST OF IMGs, even if one')
+    images = Column(Text, nullable=True, comment="LIST OF IMGs, even if one")
     rarity = Column(String(250), nullable=False)
     card_type = Column(String(250), nullable=False)
     monster_type_line = Column(String(250), nullable=True)
@@ -83,9 +85,9 @@ class CardYuGiOh(Base):
     level = Column(Integer, nullable=True)
     set_number = Column(String(250), nullable=True)
     atk = Column(String(250), nullable=True)
-    def_ = Column(String(250), nullable=True, name='def')
+    def_ = Column(String(250), nullable=True, name="def")
     materials = Column(Text, nullable=True)
-    series = Column(Text, nullable=True, comment='liste')
+    series = Column(Text, nullable=True, comment="liste")
     limit_regulation_tcg = Column(String(250), nullable=True)
     limit_regulation_ocg = Column(String(250), nullable=True)
     pendulum_scale = Column(Integer, nullable=True)
@@ -95,22 +97,31 @@ class CardYuGiOh(Base):
 
 
 class Item(Base):
-    __tablename__ = 'items'
-    
+    __tablename__ = "items"
+
     id = Column(Integer, primary_key=True, autoincrement=True)
-    source_table = Column(String(255), nullable=False) #tablename
-    specific_id = Column(Integer, nullable=False) #id of the tablename
+    source_table = Column(String(255), nullable=False)  # tablename
+    specific_id = Column(Integer, nullable=False)  # id of the tablename
 
 
 class UserItem(Base):
-    __tablename__ = 'user_items'
+    __tablename__ = "user_items"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     user_id = Column(Integer, nullable=False)
     item_id = Column(Integer, nullable=False)
     quantity = Column(Integer, nullable=False)
     added_date = Column(DateTime, nullable=False)
-    condition = Column(String(100), nullable=True) #cards : POOR, LIGHT_PLAYED, GOOD, EXCELLENT, NEAR_MINT, MINT ; others :POOR, GOOD, EXCELLENT, SEALED
+    condition = Column(
+        String(100), nullable=True
+    )  # cards : POOR, LIGHT_PLAYED, GOOD, EXCELLENT, NEAR_MINT, MINT ; others :POOR, GOOD, EXCELLENT, SEALED
     extras = Column(Text, nullable=True)
     is_first_edition = Column(Boolean, nullable=True)
 
+
+def get_class_by_tablename(tablename):
+    """Return class reference mapped to table."""
+    for c in Base.registry._class_registry.values():
+        if hasattr(c, "__table__") and c.__table__.fullname == tablename:
+            return c
+    return None
