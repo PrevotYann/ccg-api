@@ -216,5 +216,5 @@ class UserItem(BaseModel):
 class UserItemInput(BaseModel):
     quantity: int
     condition: Optional[str]
-    extras: Optional[str]
-    is_first_edition: Optional[bool]
+    extras: Optional[str] = None
+    is_first_edition: Optional[bool] = None

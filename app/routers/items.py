@@ -87,26 +87,28 @@ def add_item_to_user_collection(
     db.commit()
 
 
-@router.delete("/{item_id}/user/{username}/delete")
+@router.delete("/{user_item_id}/user/{username}/delete")
 def delete_user_item_for_user_by_id(
-    item_id: int, username: str, db: Session = Depends(get_db)
+    user_item_id: int, username: str, db: Session = Depends(get_db)
 ):
     user = db.query(User).filter(User.username == username).one_or_none()
 
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")
 
-    user_item_to_delete = db.query(UserItem).filter(
-        UserItem.id == item_id, UserItem.user_id == user.id
-    )
+    user_items = db.query(UserItem).filter(
+        UserItem.id == user_item_id,
+        UserItem.user_id == user.id
+    ).all()
 
-    db.delete(user_item_to_delete)
+    for ui in user_items:
+        db.delete(ui)
     db.commit()
 
 
-@router.put("/{item_id}/user/{username}")
+@router.put("/{user_item_id}/user/{username}")
 def edit_user_item_for_user_by_id(
-    item_id: int,
+    user_item_id: int,
     username: str,
     item_input: UserItemInput,
     db: Session = Depends(get_db),
@@ -118,7 +120,7 @@ def edit_user_item_for_user_by_id(
 
     user_item_to_edit = (
         db.query(UserItem)
-        .filter(UserItem.id == item_id, UserItem.user_id == user.id)
+        .filter(UserItem.id == user_item_id, UserItem.user_id == user.id)
         .one()
     )
 
@@ -156,6 +158,7 @@ def query_items_with_dynamic_join(username: str, db: Session = Depends(get_db)):
             if source_item:
                 # Create a dictionary that combines item, user_item, and source_item details
                 item_details = {
+                    "user_item_id": user_item.id,
                     "item_id": item.id,
                     "source_table": item.source_table,
                     "specific_id": item.specific_id,
