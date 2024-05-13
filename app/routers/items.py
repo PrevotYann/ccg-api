@@ -14,9 +14,9 @@ router = APIRouter(prefix="/items")
 
 conditions = {
     "poor": "POOR",
-    "played": "PL",
+    "played": "PLAYED",
     "light_played": "LP",
-    "good": "GOOD",
+    "good": "GOOD CONDITION",
     "excellent": "EXCELLENT",
     "near_mint": "NM",
     "mint": "MINT"
