@@ -13,10 +13,10 @@ router = APIRouter(prefix="/items")
 
 
 conditions = {
-    "poor": "PO",
+    "poor": "POOR",
     "played": "PL",
     "light_played": "LP",
-    "good": "GD",
+    "good": "GOOD",
     "excellent": "EX",
     "near_mint": "NM",
     "mint": "MINT"
@@ -227,6 +227,7 @@ def ebay_price_for_item(
             ebay_lowest = prices["low"],
             ebay_mean = prices["mean"],
             ebay_median = prices["median"],
+            is_first_edition = first_edition
         )
         db.add(item_price)
     else:
@@ -235,6 +236,7 @@ def ebay_price_for_item(
         item_price.ebay_lowest = prices["low"]
         item_price.ebay_mean = prices["mean"]
         item_price.ebay_median = prices["median"]
+        item_price.is_first_edition = first_edition
         db.flush()
     
     db.commit()

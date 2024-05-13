@@ -139,3 +139,4 @@ class ItemPrice(Base):
     ebay_median = Column(String(100), nullable=True)
     ebay_mean = Column(String(100), nullable=True)
     ebay_highest = Column(String(100), nullable=True)
+    is_first_edition = Column(Boolean, nullable=True)
