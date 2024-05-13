@@ -212,7 +212,8 @@ def ebay_price_for_item(
         db.query(ItemPrice)
         .filter(
             ItemPrice.item_id == item_to_look_for_price.id,
-            ItemPrice.condition == condition
+            ItemPrice.condition == condition,
+            ItemPrice.is_first_edition == first_edition
         )
         .one_or_none()
     )
