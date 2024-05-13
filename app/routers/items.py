@@ -317,16 +317,21 @@ def query_items_with_dynamic_join(username: str, db: Session = Depends(get_db)):
 
     # Retrieve items and their corresponding user_items entries
     user_items = (
-        db.query(Item, UserItem)
+        db.query(Item, UserItem, ItemPrice)
         .select_from(UserItem)
         .join(Item, Item.id == UserItem.item_id)
-        .filter(UserItem.user_id == user.id)
+        .join(ItemPrice, Item.id == ItemPrice.item_id)
+        .filter(
+            UserItem.user_id == user.id,
+            UserItem.condition == ItemPrice.condition,
+            UserItem.is_first_edition == ItemPrice.is_first_edition
+        )
         .all()
     )
 
     results = []
 
-    for item, user_item in user_items:
+    for item, user_item, item_price in user_items:
         table_class = get_class_by_tablename(item.source_table)
         if table_class is not None:
             source_item = (
@@ -347,6 +352,13 @@ def query_items_with_dynamic_join(username: str, db: Session = Depends(get_db)):
                         "extras": user_item.extras,
                         "is_first_edition": user_item.is_first_edition,
                     },
+                    "prices":
+                        {
+                            "low": item_price.ebay_lowest,
+                            "high": item_price.ebay_highest,
+                            "mean": item_price.ebay_mean,
+                            "median": item_price.ebay_median,
+                        }
                 }
                 results.append(item_details)
 
