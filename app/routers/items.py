@@ -245,6 +245,25 @@ def ebay_price_for_item(
     return prices
 
 
+@router.get("/table/{table_name}/item/{specific_id}/ebay/prices/all", tags=["items"])
+def get_ebay_item_all_prices(
+    table_name: str,
+    specific_id: int,
+    db: Session = Depends(get_db)
+):
+    existing_item = get_item_from_source_table_and_id(
+        origin_table_name=table_name, origin_id=specific_id, db=db
+    )
+
+    if existing_item is not None:
+        return (
+            db.query(ItemPrice)
+            .filter(ItemPrice.item_id == existing_item.id)
+            .all()
+        )
+    else:
+        return None
+
 @router.delete("/{user_item_id}/user/{username}/delete")
 def delete_user_item_for_user_by_id(
     user_item_id: int, username: str, db: Session = Depends(get_db)
