@@ -1,6 +1,6 @@
 import datetime
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import cast, Integer
+from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -320,11 +320,16 @@ def query_items_with_dynamic_join(username: str, db: Session = Depends(get_db)):
         db.query(Item, UserItem, ItemPrice)
         .select_from(UserItem)
         .join(Item, Item.id == UserItem.item_id)
-        .outerjoin(ItemPrice, Item.id == ItemPrice.item_id)
+        .outerjoin(ItemPrice, UserItem.item_id == ItemPrice.item_id)
         .filter(
             UserItem.user_id == user.id,
-            UserItem.condition == ItemPrice.condition,
-            UserItem.is_first_edition == ItemPrice.is_first_edition
+            or_(
+                ItemPrice.id == None,
+                and_(
+                    UserItem.condition == ItemPrice.condition,
+                    UserItem.is_first_edition == ItemPrice.is_first_edition
+                )
+            )
         )
         .all()
     )
@@ -354,11 +359,17 @@ def query_items_with_dynamic_join(username: str, db: Session = Depends(get_db)):
                     },
                     "prices":
                         {
-                            "low": item_price.ebay_lowest if item_price is not None else None,
-                            "high": item_price.ebay_highest if item_price is not None else None,
-                            "mean": item_price.ebay_mean if item_price is not None else None,
-                            "median": item_price.ebay_median if item_price is not None else None,
-                            "currency": item_price.ebay_currency if item_price is not None else None
+                            "low": item_price.ebay_lowest,
+                            "high": item_price.ebay_highest,
+                            "mean": item_price.ebay_mean,
+                            "median": item_price.ebay_median,
+                            "currency": item_price.ebay_currency
+                        } if item_price is not None else {
+                            "low": None,
+                            "high": None,
+                            "mean": None,
+                            "median": None,
+                            "currency": None
                         }
                 }
                 results.append(item_details)
