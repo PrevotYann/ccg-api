@@ -11,3 +11,4 @@ requests
 python-multipart
 a2wsgi
 browseapi
+numpy

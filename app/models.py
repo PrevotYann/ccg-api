@@ -125,3 +125,17 @@ def get_class_by_tablename(tablename):
         if hasattr(c, "__table__") and c.__table__.fullname == tablename:
             return c
     return None
+
+
+class ItemPrice(Base):
+    __tablename__ = "items_prices"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    item_id = Column(Integer, nullable=False)
+    condition = Column(String(100), nullable=True)
+    ebay_currency = Column(String(100), nullable=True)
+    ebay_last_update = Column(String(100), nullable=True)
+    ebay_lowest = Column(String(100), nullable=True)
+    ebay_median = Column(String(100), nullable=True)
+    ebay_mean = Column(String(100), nullable=True)
+    ebay_highest = Column(String(100), nullable=True)

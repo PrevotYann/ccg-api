@@ -4,11 +4,23 @@ from sqlalchemy import cast, Integer
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import Item, User, UserItem, get_class_by_tablename
+from app.models import CardPokemon, CardYuGiOh, Item, ItemPrice, User, UserItem, get_class_by_tablename
+from app.routers.ebay import ebay_search_query_france_prices, ebay_search_query_us_prices
 from app.schema import Item as ItemSchema, UserItem as UserItemSchema, UserItemInput
 
 
 router = APIRouter(prefix="/items")
+
+
+conditions = {
+    "poor": "PO",
+    "played": "PL",
+    "light_played": "LP",
+    "good": "GD",
+    "excellent": "EX",
+    "near_mint": "NM",
+    "mint": "MINT"
+}
 
 
 #################################
@@ -85,6 +97,149 @@ def add_item_to_user_collection(
         existing_user_item.quantity += item_input.quantity
 
     db.commit()
+
+
+@router.post("/table/{table_name}/item/{specific_id}/condition/{condition}/first/{first_edition}/ebay/price", tags=["items"])
+def ebay_price_for_item(
+    table_name: str,
+    specific_id: int,
+    condition: str,
+    first_edition: bool,
+    db: Session = Depends(get_db),
+):
+    existing_item = get_item_from_source_table_and_id(
+        origin_table_name=table_name, origin_id=specific_id, db=db
+    )
+
+    if existing_item is not None:
+        item_to_look_for_price = existing_item
+    else:
+        item_to_look_for_price = create_item(
+            origin_table_name=table_name, origin_id=specific_id, db=db
+        )
+    
+    # defining prices
+    if table_name == "cards_yugioh":
+        card = db.query(CardYuGiOh).filter(CardYuGiOh.id == specific_id).one()
+
+        set_number = card.set_number if card.set_number not in ["", None] else card.name if "<ruby>" not in card.name else None
+        if set_number is None:
+            return
+        language = card.language
+        if language == "fr":
+            prices = ebay_search_query_france_prices(
+                query=set_number + " " + conditions[condition] + (" 1st" if first_edition else "")
+            )
+            if prices is None:
+                prices = ebay_search_query_france_prices(
+                    query=set_number + " " + conditions[condition]
+                )
+                if prices is None:
+                    prices = ebay_search_query_france_prices(
+                    query=set_number + (" 1st" if first_edition else "")
+                )
+                    if prices is None:
+                        prices = ebay_search_query_france_prices(
+                            query=set_number
+                        )
+            currency = "EURO"
+        else:
+            prices = ebay_search_query_us_prices(
+                query=set_number + " " + conditions[condition] + (" 1st" if first_edition else "")
+            )
+            if prices is None:
+                prices = ebay_search_query_us_prices(
+                    query=set_number + " " + conditions[condition]
+                )
+                if prices is None:
+                    prices = ebay_search_query_us_prices(
+                    query=set_number + (" 1st" if first_edition else "")
+                )
+                    if prices is None:
+                        prices = ebay_search_query_us_prices(
+                            query=set_number
+                        )
+            currency = "DOLLAR"
+    
+    elif table_name == "cards_pokemon":
+        card = db.query(CardPokemon).filter(CardYuGiOh.id == specific_id).one()
+
+        name = card.name
+        card_number = card.local_id
+        language = card.language
+
+        if language == "fr":
+            prices = ebay_search_query_france_prices(
+                query=name + " " + card_number + " " + conditions[condition] + " 1st" if first_edition else ""
+            )
+            if prices is None:
+                prices = ebay_search_query_france_prices(
+                    query=name + " " + card_number + " " + conditions[condition]
+                )
+                if prices is None:
+                    prices = ebay_search_query_france_prices(
+                        query=name + " 1st" if first_edition else ""
+                    )
+                    if prices is None:
+                        prices = ebay_search_query_france_prices(
+                            query=name + " " + card_number
+                        )
+            currency = "EURO"
+        else:
+            prices = ebay_search_query_us_prices(
+                query=name + " " + card_number + conditions[condition] + " 1st" if first_edition else ""
+            )
+            if prices is None:
+                prices = ebay_search_query_us_prices(
+                    query=name + " " + card_number + " " + conditions[condition]
+                )
+                if prices is None:
+                    prices = ebay_search_query_us_prices(
+                        query=name + " 1st" if first_edition else ""
+                    )
+                    if prices is None:
+                        prices = ebay_search_query_us_prices(
+                            query=name + " " + card_number
+                        )
+            currency = "DOLLAR"
+
+    if prices is None:
+        return None
+    now = datetime.datetime.now()
+
+    # Check if item exist with this condition, and first edition check for the current item and user
+    item_price = (
+        db.query(ItemPrice)
+        .filter(
+            ItemPrice.item_id == item_to_look_for_price.id,
+            ItemPrice.condition == condition
+        )
+        .one_or_none()
+    )
+    
+    if item_price is None:
+        item_price = ItemPrice(
+            item_id = item_to_look_for_price.id,
+            condition = condition,
+            ebay_currency = currency,
+            ebay_last_update = now,
+            ebay_highest = prices["high"],
+            ebay_lowest = prices["low"],
+            ebay_mean = prices["mean"],
+            ebay_median = prices["median"],
+        )
+        db.add(item_price)
+    else:
+        item_price.ebay_last_update = now
+        item_price.ebay_highest = prices["high"]
+        item_price.ebay_lowest = prices["low"]
+        item_price.ebay_mean = prices["mean"]
+        item_price.ebay_median = prices["median"]
+        db.flush()
+    
+    db.commit()
+
+    return prices
 
 
 @router.delete("/{user_item_id}/user/{username}/delete")
