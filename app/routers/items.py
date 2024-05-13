@@ -17,7 +17,7 @@ conditions = {
     "played": "PL",
     "light_played": "LP",
     "good": "GOOD",
-    "excellent": "EX",
+    "excellent": "EXCELLENT",
     "near_mint": "NM",
     "mint": "MINT"
 }
