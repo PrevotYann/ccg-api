@@ -358,6 +358,7 @@ def query_items_with_dynamic_join(username: str, db: Session = Depends(get_db)):
                             "high": item_price.ebay_highest,
                             "mean": item_price.ebay_mean,
                             "median": item_price.ebay_median,
+                            "currency": item_price.ebay_currency
                         }
                 }
                 results.append(item_details)
