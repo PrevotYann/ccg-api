@@ -32,7 +32,7 @@ def ebay_search_query_france_prices(query: str):
     api = BrowseAPI(app_id, cert_id, marketplace_id="EBAY_FR")
     responses = api.execute("search", [{"q": query, "limit": 200}])
     currency = "EURO"
-    print(query)
+
     if responses[0] is not None:
         exclude_keywords = ["replica", "réplica", "fake", "vitrine", "présentation", "fan art", "metal card", "sleeve", "alt arts", "alt art", "illustration holder", "artwork", "display case", "playmat", " plush "]
         include_keywords = query.split(" ")
@@ -92,7 +92,7 @@ def ebay_search_query_france_prices(query: str):
 @router.get("/search/us/prices", tags=["ebay"])
 def ebay_search_query_us_prices(query: str):
     api = BrowseAPI(app_id, cert_id, marketplace_id="EBAY_US")
-    print(query)
+
     responses = api.execute("search", [{"q": query, "limit": 200}])
     currency = "DOLLAR"
     if responses is not None:
@@ -118,7 +118,6 @@ def ebay_search_query_us_prices(query: str):
                     ]
         except:
             return None
-        print(prices)
         # Convert string values to floats
         float_prices = np.array(list(map(float, prices)))
 
@@ -136,7 +135,6 @@ def ebay_search_query_us_prices(query: str):
             filtered_prices = [x for x in float_prices if Z1 - factor * IZR <= x <= Z3 + factor * IZR]
         except:
             filtered_prices = float_prices
-        print(float_prices)
         return {
             "low_not_filtered": np.min(float_prices),
             "low": np.min(filtered_prices),
@@ -146,6 +144,7 @@ def ebay_search_query_us_prices(query: str):
             "median": np.median(filtered_prices),
             "currency": currency
         }
+
 
 @router.get("/search/fr/condition/{condition}", tags=["ebay"])
 def ebay_search_query_france_with_condition(query: str, condition: str):
