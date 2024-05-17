@@ -162,15 +162,15 @@ def ebay_price_for_item(
             currency = "DOLLAR"
     
     elif table_name == "cards_pokemon":
-        card = db.query(CardPokemon).filter(CardYuGiOh.id == specific_id).one()
+        card = db.query(CardPokemon).filter(CardPokemon.id == specific_id).one()
 
         name = card.name
-        card_number = card.local_id
+        card_number = str(card.local_id)
         language = card.language
 
         if language == "fr":
             prices = ebay_search_query_france_prices(
-                query=name + " " + card_number + " " + conditions[condition] + " 1st" if first_edition else ""
+                query=name + " " + card_number + " " + conditions[condition] + (" 1st" if first_edition else "")
             )
             if prices is None:
                 prices = ebay_search_query_france_prices(
@@ -178,7 +178,7 @@ def ebay_price_for_item(
                 )
                 if prices is None:
                     prices = ebay_search_query_france_prices(
-                        query=name + " 1st" if first_edition else ""
+                        query=name + (" 1st" if first_edition else "")
                     )
                     if prices is None:
                         prices = ebay_search_query_france_prices(
@@ -187,7 +187,7 @@ def ebay_price_for_item(
             currency = "EURO"
         else:
             prices = ebay_search_query_us_prices(
-                query=name + " " + card_number + conditions[condition] + " 1st" if first_edition else ""
+                query=name + " " + card_number + " " + conditions[condition] + (" 1st" if first_edition else "")
             )
             if prices is None:
                 prices = ebay_search_query_us_prices(
@@ -195,7 +195,7 @@ def ebay_price_for_item(
                 )
                 if prices is None:
                     prices = ebay_search_query_us_prices(
-                        query=name + " 1st" if first_edition else ""
+                        query=name + (" 1st" if first_edition else "")
                     )
                     if prices is None:
                         prices = ebay_search_query_us_prices(
