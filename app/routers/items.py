@@ -2,11 +2,12 @@ import datetime
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
+from typing import List
 
 from app.database import get_db
 from app.models import CardPokemon, CardYuGiOh, Item, ItemPrice, User, UserItem, get_class_by_tablename
 from app.routers.ebay import ebay_search_query_france_prices, ebay_search_query_us_prices
-from app.schema import Item as ItemSchema, UserItem as UserItemSchema, UserItemInput
+from app.schema import Item as ItemSchema, UserItem as UserItemSchema, UserItemInput, UserItemsInput
 
 
 router = APIRouter(prefix="/items")
@@ -98,6 +99,42 @@ def add_item_to_user_collection(
 
     db.commit()
 
+@router.post("/table/{table_name}/items/user/{username}", tags=["items"])
+def add_multiple_items_to_user_collection(
+    table_name: str,
+    username: str,
+    items_input: UserItemsInput,
+    db: Session = Depends(get_db),
+):
+    for specific_id in items_input.item_ids:
+        existing_item = get_item_from_source_table_and_id(
+            origin_table_name=table_name, origin_id=specific_id, db=db
+        )
+
+        if existing_item is not None:
+            item_to_add = existing_item
+        else:
+            item_to_add = create_item(
+                origin_table_name=table_name, origin_id=specific_id, db=db
+            )
+
+        existing_user_item = existing_link_user_item_condition_edition(
+            item_id=item_to_add.id,
+            username=username,
+            condition=items_input.condition,
+            is_first_edition=items_input.is_first_edition,
+            db=db,
+        )
+
+        if existing_user_item is None:
+            link_item_to_user_collection(
+                item_id=item_to_add.id, username=username, item_input=items_input, db=db
+            )
+        else:
+            existing_user_item.quantity += items_input.quantity
+
+    db.commit()
+    return {"message": "Items added successfully"}
 
 @router.post("/table/{table_name}/item/{specific_id}/condition/{condition}/first/{first_edition}/ebay/price", tags=["items"])
 def ebay_price_for_item(

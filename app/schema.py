@@ -218,3 +218,10 @@ class UserItemInput(BaseModel):
     condition: Optional[str]
     extras: Optional[str] = None
     is_first_edition: Optional[bool] = None
+
+class UserItemsInput(BaseModel):
+    item_ids: List[int]
+    quantity: int
+    condition: Optional[str]
+    extras: Optional[str] = None
+    is_first_edition: Optional[bool] = None
