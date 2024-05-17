@@ -224,19 +224,19 @@ def ebay_price_for_item(
             condition = condition,
             ebay_currency = currency,
             ebay_last_update = now,
-            ebay_highest = prices["high"],
-            ebay_lowest = prices["low"],
-            ebay_mean = prices["mean"],
-            ebay_median = prices["median"],
+            ebay_highest = "%.2f" % prices["high"],
+            ebay_lowest = "%.2f" % prices["low"],
+            ebay_mean = "%.2f" % prices["mean"],
+            ebay_median = "%.2f" % prices["median"],
             is_first_edition = first_edition
         )
         db.add(item_price)
     else:
         item_price.ebay_last_update = now
-        item_price.ebay_highest = prices["high"]
-        item_price.ebay_lowest = prices["low"]
-        item_price.ebay_mean = prices["mean"]
-        item_price.ebay_median = prices["median"]
+        item_price.ebay_highest = "%.2f" % prices["high"]
+        item_price.ebay_lowest = "%.2f" % prices["low"]
+        item_price.ebay_mean = "%.2f" % prices["mean"]
+        item_price.ebay_median = "%.2f" % prices["median"]
         item_price.is_first_edition = first_edition
         db.flush()
     
