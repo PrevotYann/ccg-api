@@ -1,8 +1,7 @@
-import datetime
+from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import and_, or_
+from sqlalchemy import and_, or_, func
 from sqlalchemy.orm import Session
-from typing import List
 
 from app.database import get_db
 from app.models import CardPokemon, CardYuGiOh, Item, ItemPrice, User, UserItem, get_class_by_tablename
@@ -159,26 +158,23 @@ def ebay_price_for_item(
     if table_name == "cards_yugioh":
         card = db.query(CardYuGiOh).filter(CardYuGiOh.id == specific_id).one()
 
+        #rarity = card.rarity
         set_number = card.set_number if card.set_number not in ["", None] else card.name if "<ruby>" not in card.name else None
         if set_number is None:
             return
         language = card.language
         if language == "fr":
             prices = ebay_search_query_france_prices(
-                query=set_number + " " + conditions[condition] + (" 1st" if first_edition else "")
+                query=set_number + " " + conditions[condition] + (" 1st" if first_edition else "") #+ " " + rarity 
             )
             if prices is None:
                 prices = ebay_search_query_france_prices(
-                    query=set_number + " " + conditions[condition]
+                    query=set_number #+ " " + conditions[condition] + (" 1st" if first_edition else "")
                 )
-                if prices is None:
-                    prices = ebay_search_query_france_prices(
-                    query=set_number + (" 1st" if first_edition else "")
-                )
-                    if prices is None:
-                        prices = ebay_search_query_france_prices(
-                            query=set_number
-                        )
+                # if prices is None:
+                #     prices = ebay_search_query_france_prices(
+                #         query=set_number + " " + rarity
+                #     )
             currency = "EURO"
         else:
             prices = ebay_search_query_us_prices(
@@ -186,63 +182,52 @@ def ebay_price_for_item(
             )
             if prices is None:
                 prices = ebay_search_query_us_prices(
-                    query=set_number + " " + conditions[condition]
+                    query=set_number
                 )
-                if prices is None:
-                    prices = ebay_search_query_us_prices(
-                    query=set_number + (" 1st" if first_edition else "")
-                )
-                    if prices is None:
-                        prices = ebay_search_query_us_prices(
-                            query=set_number
-                        )
+                # if prices is None:
+                #     prices = ebay_search_query_us_prices(
+                #     query=set_number + " " + rarity
+                # )
             currency = "DOLLAR"
     
     elif table_name == "cards_pokemon":
         card = db.query(CardPokemon).filter(CardPokemon.id == specific_id).one()
 
         name = card.name
+        #rarity = card.rarity
         card_number = str(card.local_id)
         language = card.language
 
         if language == "fr":
             prices = ebay_search_query_france_prices(
-                query=name + " " + card_number + " " + conditions[condition] + (" 1st" if first_edition else "")
+                query=name + " " + card_number + " " + conditions[condition] + (" 1st" if first_edition else "") #+ " " + rarity 
             )
             if prices is None:
                 prices = ebay_search_query_france_prices(
-                    query=name + " " + card_number + " " + conditions[condition]
+                    query=name + card_number + (" 1st" if first_edition else "") #+ rarity 
                 )
-                if prices is None:
-                    prices = ebay_search_query_france_prices(
-                        query=name + (" 1st" if first_edition else "")
-                    )
-                    if prices is None:
-                        prices = ebay_search_query_france_prices(
-                            query=name + " " + card_number
-                        )
+                # if prices is None:
+                #     prices = ebay_search_query_france_prices(
+                #         query=name + " " + card_number
+                #     )
             currency = "EURO"
         else:
             prices = ebay_search_query_us_prices(
-                query=name + " " + card_number + " " + conditions[condition] + (" 1st" if first_edition else "")
+                query=name + " " + card_number + " " + conditions[condition] + (" 1st" if first_edition else "") #+ " " + rarity + (" 1st" if first_edition else "")
             )
             if prices is None:
                 prices = ebay_search_query_us_prices(
-                    query=name + " " + card_number + " " + conditions[condition]
+                    query=name + card_number + (" 1st" if first_edition else "")#+ " " + rarity 
                 )
-                if prices is None:
-                    prices = ebay_search_query_us_prices(
-                        query=name + (" 1st" if first_edition else "")
-                    )
-                    if prices is None:
-                        prices = ebay_search_query_us_prices(
-                            query=name + " " + card_number
-                        )
+                # if prices is None:
+                #     prices = ebay_search_query_us_prices(
+                #         query=name + " " + card_number
+                #     )
             currency = "DOLLAR"
 
     if prices is None:
         return None
-    now = datetime.datetime.now()
+    now = datetime.now()
 
     # Check if item exist with this condition, and first edition check for the current item and user
     item_price = (
@@ -300,6 +285,7 @@ def get_ebay_item_all_prices(
         )
     else:
         return None
+
 
 @router.delete("/{user_item_id}/user/{username}/delete")
 def delete_user_item_for_user_by_id(
@@ -414,6 +400,49 @@ def query_items_with_dynamic_join(username: str, db: Session = Depends(get_db)):
     return results
 
 
+@router.post("/user/{username}/prices/ebay/update")
+def update_all_user_item_ebay_prices(
+    username: str,
+    db: Session = Depends(get_db)
+):
+    user = db.query(User).filter(User.username == username).one_or_none()
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    twenty_four_hours_ago = datetime.now() - timedelta(hours=24)
+
+    data = (
+        db.query(UserItem, Item)
+        .select_from(Item)
+        .join(UserItem, Item.id == UserItem.item_id)
+        .outerjoin(ItemPrice, and_(
+                Item.id == ItemPrice.item_id,
+                UserItem.condition == ItemPrice.condition,
+                ItemPrice.is_first_edition == UserItem.is_first_edition,
+            )
+        )
+        .filter(
+            UserItem.user_id == user.id,
+            or_(
+                ItemPrice.ebay_last_update < twenty_four_hours_ago,
+                ItemPrice.item_id == None
+            )
+        )
+        .all()
+    )
+
+    for row in data:
+        print(row.Item.id)
+        ebay_price_for_item(
+            table_name = row.Item.source_table,
+            specific_id = row.Item.specific_id,
+            condition = row.UserItem.condition,
+            first_edition = row.UserItem.is_first_edition,
+            db= db
+        )
+
+    return {"message": "{0} Items prices updated".format(len(data))}
+
 #################################
 #################################
 ########### FUNCTIONS ###########
@@ -451,7 +480,7 @@ def link_item_to_user_collection(
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")
 
-    now = datetime.datetime.now()
+    now = datetime.now()
 
     new_user_item = UserItem(
         user_id=user.id,
