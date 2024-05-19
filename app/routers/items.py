@@ -80,12 +80,15 @@ def add_item_to_user_collection(
             origin_table_name=table_name, origin_id=specific_id, db=db
         )
 
+    extras = item_input.extras if item_input.extras not in ["", "null"] else None
+
     # Check if item exist with this condition, and first edition check for the current item and user
     existing_user_item = existing_link_user_item_condition_edition(
         item_id=item_to_add.id,
         username=username,
         condition=item_input.condition,
         is_first_edition=item_input.is_first_edition,
+        extras=extras,
         db=db,
     )
 
@@ -117,11 +120,14 @@ def add_multiple_items_to_user_collection(
                 origin_table_name=table_name, origin_id=specific_id, db=db
             )
 
+        extras = items_input.extras if items_input.extras not in ["", "null"] else None
+
         existing_user_item = existing_link_user_item_condition_edition(
             item_id=item_to_add.id,
             username=username,
             condition=items_input.condition,
             is_first_edition=items_input.is_first_edition,
+            extras=extras,
             db=db,
         )
 
@@ -135,11 +141,12 @@ def add_multiple_items_to_user_collection(
     db.commit()
     return {"message": "Items added successfully"}
 
-@router.post("/table/{table_name}/item/{specific_id}/condition/{condition}/first/{first_edition}/ebay/price", tags=["items"])
+@router.post("/table/{table_name}/item/{specific_id}/condition/{condition}/first/{first_edition}/extras/{extras}/ebay/price", tags=["items"])
 def ebay_price_for_item(
     table_name: str,
     specific_id: int,
     condition: str,
+    extras: str,
     first_edition: bool,
     db: Session = Depends(get_db),
 ):
@@ -197,14 +204,14 @@ def ebay_price_for_item(
         #rarity = card.rarity
         card_number = str(card.local_id)
         language = card.language
-
+        extra_in_query = (" " + extras if extras is not None else "")
         if language == "fr":
             prices = ebay_search_query_france_prices(
-                query=name + " " + card_number + " " + conditions[condition] + (" 1st" if first_edition else "") #+ " " + rarity 
+                query=name + " " + card_number + " " + conditions[condition] + extra_in_query + (" 1st" if first_edition else "") #+ " " + rarity 
             )
             if prices is None:
                 prices = ebay_search_query_france_prices(
-                    query=name + card_number + (" 1st" if first_edition else "") #+ rarity 
+                    query=name + card_number + extra_in_query + (" 1st" if first_edition else "") #+ rarity 
                 )
                 # if prices is None:
                 #     prices = ebay_search_query_france_prices(
@@ -213,11 +220,11 @@ def ebay_price_for_item(
             currency = "EURO"
         else:
             prices = ebay_search_query_us_prices(
-                query=name + " " + card_number + " " + conditions[condition] + (" 1st" if first_edition else "") #+ " " + rarity + (" 1st" if first_edition else "")
+                query=name + " " + card_number + " " + conditions[condition] + extra_in_query + (" 1st" if first_edition else "") #+ " " + rarity + (" 1st" if first_edition else "")
             )
             if prices is None:
                 prices = ebay_search_query_us_prices(
-                    query=name + card_number + (" 1st" if first_edition else "")#+ " " + rarity 
+                    query=name + card_number + extra_in_query + (" 1st" if first_edition else "")#+ " " + rarity 
                 )
                 # if prices is None:
                 #     prices = ebay_search_query_us_prices(
@@ -287,7 +294,7 @@ def get_ebay_item_all_prices(
         return None
 
 
-@router.delete("/{user_item_id}/user/{username}/delete")
+@router.delete("/{user_item_id}/user/{username}/delete", tags=["items"])
 def delete_user_item_for_user_by_id(
     user_item_id: int, username: str, db: Session = Depends(get_db)
 ):
@@ -306,7 +313,7 @@ def delete_user_item_for_user_by_id(
     db.commit()
 
 
-@router.put("/{user_item_id}/user/{username}")
+@router.put("/{user_item_id}/user/{username}", tags=["items"])
 def edit_user_item_for_user_by_id(
     user_item_id: int,
     username: str,
@@ -400,7 +407,7 @@ def query_items_with_dynamic_join(username: str, db: Session = Depends(get_db)):
     return results
 
 
-@router.post("/user/{username}/prices/ebay/update")
+@router.post("/user/{username}/prices/ebay/update", tags=["items"])
 def update_all_user_item_ebay_prices(
     username: str,
     db: Session = Depends(get_db)
@@ -502,12 +509,15 @@ def existing_link_user_item_condition_edition(
     username: str,
     condition: str,
     is_first_edition: bool,
+    extras: str,
     db: Session = Depends(get_db),
 ) -> UserItem:
     user = db.query(User).filter(User.username == username).one_or_none()
 
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")
+
+    formated_extras = extras if extras not in ["", "null", None] else None
 
     existing_user_item = (
         db.query(UserItem)
@@ -516,6 +526,7 @@ def existing_link_user_item_condition_edition(
             UserItem.user_id == user.id,
             UserItem.condition == condition,
             UserItem.is_first_edition == is_first_edition,
+            UserItem.extras == formated_extras
         )
         .one_or_none()
     )
