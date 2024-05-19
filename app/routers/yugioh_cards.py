@@ -48,7 +48,8 @@ def get_yugioh_card_from_query(query: str, db: Session = Depends(get_db)):
                         func.lower(clean_name).like(f"%{name_query}%"),
                         func.lower(clean_set_number).like(f"%{set_number_query}%"),
                     ),
-                    func.lower(clean_name).like(f"%{normalized_query}%"),
+                    func.lower(clean_name).like(f"%{name_query}%"),
+                    func.lower(clean_set_number).like(f"%{name_query}%"),
                 )
             )
             .all()
@@ -62,7 +63,11 @@ def get_yugioh_card_from_query(query: str, db: Session = Depends(get_db)):
     else:
         search_results = (
             db.query(CardYuGiOh)
-            .filter(func.lower(clean_name).like(f"%{normalized_query}%"))
+            .filter(or_(
+                func.lower(clean_name).like(f"%{normalized_query}%"),
+                func.lower(clean_set_number).like(f"%{normalized_query}%")
+            )
+            )
             .all()
         )
 
