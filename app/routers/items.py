@@ -164,15 +164,14 @@ def ebay_price_for_item(
     # defining prices
     if table_name == "cards_yugioh":
         card = db.query(CardYuGiOh).filter(CardYuGiOh.id == specific_id).one()
-
-        #rarity = card.rarity
+        rarity = card.rarity
         set_number = card.set_number if card.set_number not in ["", None] else card.name if "<ruby>" not in card.name else None
         if set_number is None:
             return
         language = card.language
         if language == "fr":
             prices = ebay_search_query_france_prices(
-                query=set_number + " " + conditions[condition] + (" 1st" if first_edition else "") #+ " " + rarity 
+                query=set_number + " " + conditions[condition] + (" 1st" if first_edition else "") + (" " + rarity if any(keyword in rarity.lower() for keyword in ["collector", "ghost", "ultimate"]) else "")
             )
             if prices is None:
                 prices = ebay_search_query_france_prices(
@@ -185,7 +184,7 @@ def ebay_price_for_item(
             currency = "EURO"
         else:
             prices = ebay_search_query_us_prices(
-                query=set_number + " " + conditions[condition] + (" 1st" if first_edition else "")
+                query=set_number + " " + conditions[condition] + (" 1st" if first_edition else "") + (" " + rarity if any(keyword in rarity.lower() for keyword in ["collector", "ghost", "ultimate"]) else "")
             )
             if prices is None:
                 prices = ebay_search_query_us_prices(
@@ -445,6 +444,7 @@ def update_all_user_item_ebay_prices(
             specific_id = row.Item.specific_id,
             condition = row.UserItem.condition,
             first_edition = row.UserItem.is_first_edition,
+            extras = row.UserItem.extras,
             db= db
         )
 
