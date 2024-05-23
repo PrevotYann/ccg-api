@@ -29,6 +29,7 @@ def ebay_search_query_france(query: str):
 
 @router.get("/search/fr/prices", tags=["ebay"])
 def ebay_search_query_france_prices(query: str):
+    query = query.replace("δ", "")
     api = BrowseAPI(app_id, cert_id, marketplace_id="EBAY_FR")
     responses = api.execute("search", [{"q": query, "limit": 200}])
     currency = "EURO"
@@ -91,6 +92,7 @@ def ebay_search_query_france_prices(query: str):
 
 @router.get("/search/us/prices", tags=["ebay"])
 def ebay_search_query_us_prices(query: str):
+    query = query.replace("δ", "")
     api = BrowseAPI(app_id, cert_id, marketplace_id="EBAY_US")
 
     responses = api.execute("search", [{"q": query, "limit": 200}])

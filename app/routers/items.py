@@ -203,14 +203,14 @@ def ebay_price_for_item(
         #rarity = card.rarity
         card_number = str(card.local_id)
         language = card.language
-        extra_in_query = (" " + extras if extras is not None else "")
+        extra_in_query = (" " + extras if extras not in [None, "null"] else "")
         if language == "fr":
             prices = ebay_search_query_france_prices(
                 query=name + " " + card_number + " " + conditions[condition] + extra_in_query + (" 1st" if first_edition else "") #+ " " + rarity 
             )
             if prices is None:
                 prices = ebay_search_query_france_prices(
-                    query=name + card_number + extra_in_query + (" 1st" if first_edition else "") #+ rarity 
+                    query=name + " " + card_number + extra_in_query + (" 1st" if first_edition else "") #+ rarity 
                 )
                 # if prices is None:
                 #     prices = ebay_search_query_france_prices(
@@ -223,7 +223,7 @@ def ebay_price_for_item(
             )
             if prices is None:
                 prices = ebay_search_query_us_prices(
-                    query=name + card_number + extra_in_query + (" 1st" if first_edition else "")#+ " " + rarity 
+                    query=name + " " + card_number + extra_in_query + (" 1st" if first_edition else "")#+ " " + rarity 
                 )
                 # if prices is None:
                 #     prices = ebay_search_query_us_prices(
