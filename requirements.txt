@@ -12,3 +12,5 @@ python-multipart
 a2wsgi
 browseapi
 numpy
+beautifoulsoup4
+selenium

@@ -140,3 +140,6 @@ class ItemPrice(Base):
     ebay_mean = Column(String(100), nullable=True)
     ebay_highest = Column(String(100), nullable=True)
     is_first_edition = Column(Boolean, nullable=True)
+    cardmarket_currency = Column(String(100), nullable=True)
+    cardmarket_from_price = Column(String(100), nullable=True)
+    cardmarket_last_update = Column(String(100), nullable=True)

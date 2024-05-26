@@ -1,10 +1,11 @@
 from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import and_, or_, func
+from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import CardPokemon, CardYuGiOh, Item, ItemPrice, User, UserItem, get_class_by_tablename
+from app.routers.cardmarket import cardmarket_get_from_price
 from app.routers.ebay import ebay_search_query_france_prices, ebay_search_query_us_prices
 from app.schema import Item as ItemSchema, UserItem as UserItemSchema, UserItemInput, UserItemsInput
 
@@ -438,7 +439,6 @@ def update_all_user_item_ebay_prices(
     )
 
     for row in data:
-        print(row.Item.id)
         ebay_price_for_item(
             table_name = row.Item.source_table,
             specific_id = row.Item.specific_id,
@@ -449,6 +449,151 @@ def update_all_user_item_ebay_prices(
         )
 
     return {"message": "{0} Items prices updated".format(len(data))}
+
+
+@router.post("/user/{username}/prices/cardmarket/update", tags=["items"])
+def update_all_user_item_cardmarket_prices(
+    username: str,
+    db: Session = Depends(get_db)
+):
+    user = db.query(User).filter(User.username == username).one_or_none()
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    twenty_four_hours_ago = datetime.now() - timedelta(hours=24)
+
+    data = (
+        db.query(UserItem, Item)
+        .select_from(Item)
+        .join(UserItem, Item.id == UserItem.item_id)
+        .outerjoin(ItemPrice, and_(
+                Item.id == ItemPrice.item_id,
+                UserItem.condition == ItemPrice.condition,
+                ItemPrice.is_first_edition == UserItem.is_first_edition,
+            )
+        )
+        .filter(
+            UserItem.user_id == user.id,
+            or_(
+                ItemPrice.ebay_last_update < twenty_four_hours_ago,
+                ItemPrice.item_id == None
+            )
+        )
+        .all()
+    )
+
+    for row in data:
+        cardmarket_price_for_item(
+            table_name = row.Item.source_table,
+            specific_id = row.Item.specific_id,
+            condition = row.UserItem.condition,
+            first_edition = row.UserItem.is_first_edition,
+            extras = row.UserItem.extras,
+            db= db
+        )
+
+    return {"message": "{0} Items prices updated".format(len(data))}
+
+
+@router.post("/table/{table_name}/item/{specific_id}/condition/{condition}/first/{first_edition}/extras/{extras}/cardmarket/price", tags=["items"])
+def cardmarket_price_for_item(
+    table_name: str,
+    specific_id: int,
+    condition: str,
+    extras: str,
+    first_edition: bool,
+    db: Session = Depends(get_db),
+):
+    existing_item = get_item_from_source_table_and_id(
+        origin_table_name=table_name, origin_id=specific_id, db=db
+    )
+
+    if existing_item is not None:
+        item_to_look_for_price = existing_item
+    else:
+        item_to_look_for_price = create_item(
+            origin_table_name=table_name, origin_id=specific_id, db=db
+        )
+    
+        # Check if item exist with this condition, and first edition check for the current item and user
+    item_price = (
+        db.query(ItemPrice)
+        .filter(
+            ItemPrice.item_id == item_to_look_for_price.id,
+            ItemPrice.condition == condition,
+            ItemPrice.is_first_edition == first_edition
+        )
+        .one_or_none()
+    )
+
+    if item_price.cardmarket_last_update is not None:
+        db_datetime = datetime.strptime(item_price.cardmarket_last_update, "%Y-%m-%d %H:%M:%S.%f")
+        current_datetime = datetime.now()
+        
+        time_difference = current_datetime - db_datetime
+        
+        # Check if the time difference is greater than 24 hours
+        if time_difference < timedelta(hours=24):
+            return item_price.cardmarket_from_price
+    
+    # defining prices
+    if table_name == "cards_yugioh":
+        
+        card = db.query(CardYuGiOh).filter(CardYuGiOh.id == specific_id).one()
+        set_number = card.set_number if card.set_number not in ["", None] else card.name if "<ruby>" not in card.name else None
+        if set_number is None:
+            return
+        language = card.language
+
+        price = cardmarket_get_from_price(
+            game = "YuGiOh",
+            language = language,
+            condition = condition,
+            search = set_number,
+            first_edition = first_edition
+        )
+    
+    elif table_name == "cards_pokemon":
+        card = db.query(CardPokemon).filter(CardPokemon.id == specific_id).one()
+
+        name = card.name
+        card_number = str(card.local_id)
+        language = card.language
+        #extra_in_query = (" " + extras if extras not in [None, "null"] else "")
+
+        price = cardmarket_get_from_price(
+            game = "Pokemon",
+            language = language,
+            condition = condition,
+            search = name + " " + card_number,
+            first_edition = first_edition
+        )
+
+    if price is None:
+        return None
+    now = datetime.now()
+    
+    if item_price is None:
+        item_price = ItemPrice(
+            item_id = item_to_look_for_price.id,
+            condition = condition,
+            cardmarket_currency = "EURO" if "€" in price else "POUND" if "£" in price else "DOLLAR",
+            cardmarket_from_price = price,
+            is_first_edition = first_edition,
+            cardmarket_last_update = now
+        )
+        db.add(item_price)
+    else:
+        item_price.cardmarket_last_update = now
+        item_price.cardmarket_currency = "EURO" if "€" in price else "POUND" if "£" in price else "DOLLAR",
+        item_price.cardmarket_from_price = price,
+        item_price.is_first_edition = first_edition
+        db.flush()
+    
+    db.commit()
+
+    return price
+
 
 #################################
 #################################
