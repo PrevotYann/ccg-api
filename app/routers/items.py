@@ -4,9 +4,9 @@ from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import CardPokemon, CardYuGiOh, Item, ItemPrice, User, UserItem, get_class_by_tablename
+from app.models import CardPokemon, CardYuGiOh, Cardset, Item, ItemPrice, User, UserItem, get_class_by_tablename
 from app.routers.cardmarket import cardmarket_get_from_price
-from app.routers.ebay import ebay_search_query_france_prices, ebay_search_query_us_prices
+from app.routers.ebay import ebay_search_query_france_prices, ebay_search_query_us_prices, ebay_sold_items, ebay_sold_items_unique_string
 from app.schema import Item as ItemSchema, UserItem as UserItemSchema, UserItemInput, UserItemsInput
 
 
@@ -274,6 +274,100 @@ def ebay_price_for_item(
     return prices
 
 
+@router.post("/table/{table_name}/item/{specific_id}/condition/{condition}/first/{first_edition}/extras/{extras}/ebay/sold_prices", tags=["items"])
+def ebay_price_for_item(
+    table_name: str,
+    specific_id: int,
+    condition: str,
+    extras: str,
+    first_edition: bool,
+    db: Session = Depends(get_db),
+):
+    existing_item = get_item_from_source_table_and_id(
+        origin_table_name=table_name, origin_id=specific_id, db=db
+    )
+
+    if existing_item is not None:
+        item_to_look_for_price = existing_item
+    else:
+        item_to_look_for_price = create_item(
+            origin_table_name=table_name, origin_id=specific_id, db=db
+        )
+    
+    # defining prices
+    if table_name == "cards_yugioh":
+        card = db.query(CardYuGiOh).filter(CardYuGiOh.id == specific_id).one()
+        rarity = card.rarity
+        set_number = card.set_number if card.set_number not in ["", None] else card.name if "<ruby>" not in card.name else None
+        if set_number is None:
+            return
+        formatted_query = '"' + set_number + '" ' + condition + " " + rarity + " 1st" if first_edition else ""
+        prices = ebay_sold_items(formatted_query)
+        if prices is None:
+            prices = ebay_sold_items('"' + set_number + '" ' + condition + " 1st" if first_edition else "")
+            if prices is None:
+                prices = ebay_sold_items('"' + set_number + '" ' +condition)
+                if prices is None:
+                    prices = ebay_sold_items('"' + set_number + '"')
+    
+    elif table_name == "cards_pokemon":
+        card = db.query(CardPokemon).filter(CardPokemon.id == specific_id).one()
+        cardset_count = db.query(Cardset).filter(Cardset.id == card.cardset_id).one().official_card_count_pokemon
+        name = card.name
+        #rarity = card.rarity
+        card_number = str(card.local_id)
+        extra_in_query = (" " + extras if extras not in [None, "null"] else "")
+        formatted_query = name + ' "' + card_number + "/" + str(cardset_count) + '" ' + condition + " " + extra_in_query
+
+        prices = ebay_sold_items(formatted_query.replace("'",'"'))
+        if prices is None:
+            prices = ebay_sold_items(name + ' "' + card_number + "/" + str(cardset_count) + '" ' + condition)
+            if prices is None:
+                prices = ebay_sold_items(name + ' "' + card_number + "/" + str(cardset_count) + '" ')
+
+    if prices is None:
+        return None
+    now = datetime.now()
+
+    # Check if item exist with this condition, and first edition check for the current item and user
+    item_price = (
+        db.query(ItemPrice)
+        .filter(
+            ItemPrice.item_id == item_to_look_for_price.id,
+            ItemPrice.condition == condition,
+            ItemPrice.is_first_edition == first_edition
+        )
+        .one_or_none()
+    )
+
+    if item_price is None:
+        item_price = ItemPrice(
+            item_id = item_to_look_for_price.id,
+            condition = condition,
+            ebay_currency = prices["price_unit"],
+            ebay_last_update = now,
+            ebay_highest = "%.2f" % prices["highest_price"],
+            ebay_lowest = "%.2f" % prices["lowest_price"],
+            ebay_mean = "%.2f" % prices["mean_price"],
+            ebay_median = "%.2f" % prices["median_price"],
+            is_first_edition = first_edition
+        )
+        db.add(item_price)
+    else:
+        item_price.ebay_last_update = now
+        item_price.ebay_currency = prices["price_unit"]
+        item_price.ebay_highest = "%.2f" % prices["highest_price"]
+        item_price.ebay_lowest = "%.2f" % prices["lowest_price"]
+        item_price.ebay_mean = "%.2f" % prices["mean_price"]
+        item_price.ebay_median = "%.2f" % prices["median_price"]
+        item_price.is_first_edition = first_edition
+        db.flush()
+    
+    db.commit()
+
+    return prices
+
+
 @router.get("/table/{table_name}/item/{specific_id}/ebay/prices/all", tags=["items"])
 def get_ebay_item_all_prices(
     table_name: str,
@@ -406,6 +500,94 @@ def query_items_with_dynamic_join(username: str, db: Session = Depends(get_db)):
 
     return results
 
+
+@router.get("/user/v2/{username}", tags=["items"])
+def query_items_with_dynamic_join(
+    username: str,
+    page: int,
+    size: int,
+    db: Session = Depends(get_db)
+):
+    user = db.query(User).filter(User.username == username).one_or_none()
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Calculate offset for pagination
+    offset = (page - 1) * size
+
+    # Retrieve items and their corresponding user_items entries with pagination
+    user_items_query = (
+        db.query(Item, UserItem, ItemPrice)
+        .select_from(UserItem)
+        .join(Item, Item.id == UserItem.item_id)
+        .outerjoin(ItemPrice, UserItem.item_id == ItemPrice.item_id)
+        .filter(
+            UserItem.user_id == user.id,
+            or_(
+                ItemPrice.id == None,
+                and_(
+                    UserItem.condition == ItemPrice.condition,
+                    UserItem.is_first_edition == ItemPrice.is_first_edition
+                )
+            )
+        )
+        .offset(offset)
+        .limit(size)
+    )
+
+    user_items = user_items_query.all()
+
+    results = []
+
+    for item, user_item, item_price in user_items:
+        table_class = get_class_by_tablename(item.source_table)
+        if table_class is not None:
+            source_item = (
+                db.query(table_class).filter(table_class.id == item.specific_id).first()
+            )
+            if source_item:
+                # Create a dictionary that combines item, user_item, and source_item details
+                item_details = {
+                    "user_item_id": user_item.id,
+                    "item_id": item.id,
+                    "source_table": item.source_table,
+                    "specific_id": item.specific_id,
+                    "source_item_details": source_item,  # Assuming this is serializable; otherwise, customize serialization
+                    "user_item_details": {
+                        "quantity": user_item.quantity,
+                        "condition": user_item.condition,
+                        "added_date": user_item.added_date.isoformat(),
+                        "extras": user_item.extras,
+                        "is_first_edition": user_item.is_first_edition,
+                    },
+                    "prices":
+                        {
+                            "low": item_price.ebay_lowest,
+                            "high": item_price.ebay_highest,
+                            "mean": item_price.ebay_mean,
+                            "median": item_price.ebay_median,
+                            "currency": item_price.ebay_currency
+                        } if item_price is not None else {
+                            "low": None,
+                            "high": None,
+                            "mean": None,
+                            "median": None,
+                            "currency": None
+                        }
+                }
+                results.append(item_details)
+
+    # Get the total number of items for the user to calculate total pages
+    total_items = db.query(UserItem).filter(UserItem.user_id == user.id).count()
+    total_pages = (total_items + size - 1) // size  # Calculate total pages
+
+    return {
+        "page": page,
+        "size": size,
+        "total_pages": total_pages,
+        "total_items": total_items,
+        "items": results
+    }
 
 @router.post("/user/{username}/prices/ebay/update", tags=["items"])
 def update_all_user_item_ebay_prices(

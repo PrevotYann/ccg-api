@@ -167,133 +167,136 @@ def ebay_search_query_USA_with_condition(query: str, condition: str):
         return responses[0].itemSummaries
 
 
-@router.get("/search/sold/{item:path}", tags=["ebay"])
-def ebay_sold_items(item: str):
-    import requests
+# @router.get("/search/sold/{item:path}", tags=["ebay"])
+# def ebay_sold_items_prices(item: str):
+#     import requests
 
-    url = "https://ebay-average-selling-price.p.rapidapi.com/findCompletedItems"
-
-
-    lower_exclude_keywords = ["replica", "réplica", "fake", "vitrine", "présentation", "fan art", "'metal card'", "sleeve", "alt arts", "alt art", "illustration holder", "artwork", "display case", "playmat", "plush"]
-    upper_exclude_keywords = [k.upper() for k in lower_exclude_keywords]
-
-    excluded_keywords = lower_exclude_keywords + upper_exclude_keywords
-
-    payload = {
-        "keywords": item,
-        "excluded_keywords": " ".join(excluded_keywords),
-        "category_id": "1",
-        "max_search_results": "240",
-        "site_id": "0",
-        "remove_outliers": "true"
-    }
-    headers = {
-        "x-rapidapi-key": "5d9343ae8emshb06aed9eda11f7bp1422b9jsnbaa14324cc03",
-        "x-rapidapi-host": "ebay-average-selling-price.p.rapidapi.com",
-        "Content-Type": "application/json"
-    }
-
-    response = requests.post(url, json=payload, headers=headers)
-
-    return response.json()
+#     url = "https://ebay-average-selling-price.p.rapidapi.com/findCompletedItems"
 
 
-# @router.get("/parse/sold/{item:path}", tags=["ebay"])
-# def ebay_sold_items(item: str):
-#     # List of excluded words (must be in lower case for case insensitive comparison)
-#     excluded_words = [
-#         "shop on ebay", "replica", "réplica", "fake", "vitrine", "présentation", 
-#         "fan art", "metal card", "sleeve", "alt arts", "alt art", 
-#         "illustration holder", "artwork", "display case", "playmat", "plush"
-#     ]
+#     lower_exclude_keywords = ["replica", "réplica", "fake", "vitrine", "présentation", "fan art", "'metal card'", "sleeve", "alt arts", "alt art", "illustration holder", "artwork", "display case", "playmat", "plush"]
+#     upper_exclude_keywords = [k.upper() for k in lower_exclude_keywords]
 
-#     # URL of the eBay search page
-#     url = f"https://www.ebay.com/sch/i.html?_from=R40&_nkw={item}&_sacat=1&rt=nc&LH_Sold=1&LH_Complete=1"
-    
-#     # Send a request to the URL
-#     response = requests.get(url)
+#     excluded_keywords = lower_exclude_keywords + upper_exclude_keywords
 
-#     # Check if the request was successful
-#     if response.status_code == 200:
-#         # Parse the response content
-#         soup = BeautifulSoup(response.content, 'html.parser')
+#     payload = {
+#         "keywords": item,
+#         "excluded_keywords": " ".join(excluded_keywords),
+#         "category_id": "1",
+#         "max_search_results": "240",
+#         "site_id": "0",
+#         "remove_outliers": "true"
+#     }
+#     headers = {
+#         "x-rapidapi-key": "5d9343ae8emshb06aed9eda11f7bp1422b9jsnbaa14324cc03",
+#         "x-rapidapi-host": "ebay-average-selling-price.p.rapidapi.com",
+#         "Content-Type": "application/json"
+#     }
 
-#         # Find all items
-#         items = soup.find_all('div', class_='s-item__info')
-        
-#         # List to store prices of valid items
-#         valid_prices = []
-#         price_unit = None
+#     response = requests.post(url, json=payload, headers=headers)
 
-#         for item in items:
-#             title = item.find('div', class_='s-item__title')
-#             price = item.find('span', class_='s-item__price')
-
-#             if title and price:
-#                 title_text = title.get_text().lower()  # Convert to lower case for case insensitive comparison
-#                 price_text = price.get_text()
-
-#                 # Extract price value and unit
-#                 price_value = float(price_text.replace('$', '').replace(',', ''))
-#                 price_unit = price_text[0]  # Assuming the unit is the first character
-
-#                 # Check if any excluded word is in the title
-#                 if not any(word in title_text for word in excluded_words):
-#                     valid_prices.append(price_value)
-
-#         # Remove weirdly low amounts (e.g., below 25th percentile)
-#         if valid_prices:
-#             threshold = statistics.quantiles(valid_prices, n=10)[0]  # 25th percentile
-#             valid_prices = [price for price in valid_prices if price >= threshold]
-
-#         # Calculate mean and median prices
-#         mean_price = statistics.mean(valid_prices) if valid_prices else 0
-#         median_price = statistics.median(valid_prices) if valid_prices else 0
-#         lowest_price = min([p for p in valid_prices])
-#         highest_price = max([p for p in valid_prices])
-
-#         return {
-#             "mean_price": round(mean_price,2),
-#             "median_price": round(median_price,2),
-#             "lowest_price": lowest_price,
-#             "highest_price": highest_price,
-#             "price_unit": price_unit,
-#             "prices": [f"{price_unit}{price:.2f}" for price in valid_prices]
-#         }
-#     else:
-#         print(f"Failed to retrieve the page. Status code: {response.status_code}")
-#         return {}
+#     return response.json()
 
 
 @router.get("/parse/sold/{item:path}", tags=["ebay"])
 def ebay_sold_items(item: str):
-    import requests
+    # List of excluded words (must be in lower case for case insensitive comparison)
+    excluded_words = [
+        "shop on ebay", "replica", "réplica", "fake", "vitrine", "présentation", 
+        "fan art", "metal card", "sleeve", 
+        "illustration holder", "artwork", "display case", "playmat", "plush"
+    ]
 
-    url = "https://ebay-average-selling-price.p.rapidapi.com/findCompletedItems"
+    # URL of the eBay search page
+    url = f"https://www.ebay.com/sch/i.html?_from=R40&_nkw={item}&_sacat=0&LH_Complete=1&LH_Sold=1&_oac=1"
+    
+    # Send a request to the URL
+    response = requests.get(url)
+    print(url)
+    # Check if the request was successful
+    if response.status_code == 200:
+        # Parse the response content
+        soup = BeautifulSoup(response.content, 'html.parser')
+
+        # Find all items
+        items = soup.find_all('div', class_='s-item__info')
+        
+        # List to store prices of valid items
+        valid_prices = []
+        price_unit = None
+
+        for item in items:
+            title = item.find('div', class_='s-item__title')
+            price = item.find('span', class_='s-item__price')
+
+            if title and price:
+                title_text = title.get_text().lower()  # Convert to lower case for case insensitive comparison
+                price_text = price.get_text()
+
+                if "to" in price_text:
+                    continue
+
+                # Extract price value and unit
+                price_value = float(price_text.replace('$', '').replace(',', ''))
+                price_unit = price_text[0]  # Assuming the unit is the first character
+
+                # Check if any excluded word is in the title
+                if not any(word in title_text for word in excluded_words):
+                    valid_prices.append(price_value)
+
+        # Remove weirdly low amounts (e.g., below 25th percentile)
+        if len(valid_prices) > 10:
+            threshold = statistics.quantiles(valid_prices, n=10)[0]  # 25th percentile
+            valid_prices = [price for price in valid_prices if price >= threshold]
+
+        # Calculate mean and median prices
+        mean_price = statistics.mean(valid_prices) if valid_prices else 0
+        median_price = statistics.median(valid_prices) if valid_prices else 0
+        lowest_price = min([p for p in valid_prices])
+        highest_price = max([p for p in valid_prices])
+
+        return {
+            "mean_price": round(mean_price,2),
+            "median_price": round(median_price,2),
+            "lowest_price": lowest_price,
+            "highest_price": highest_price,
+            "price_unit": price_unit,
+            "prices": [f"{price_unit}{price:.2f}" for price in valid_prices]
+        }
+    else:
+        print(f"Failed to retrieve the page. Status code: {response.status_code}")
+        return {}
 
 
-    lower_exclude_keywords = ["replica", "réplica", "fake", "vitrine", "présentation", "fan art", "'metal card'", "sleeve", "alt arts", "alt art", "illustration holder", "artwork", "display case", "playmat", "plush"]
-    upper_exclude_keywords = [k.upper() for k in lower_exclude_keywords]
+# @router.get("/parse/sold/{item:path}", tags=["ebay"])
+# def ebay_sold_items(item: str):
+#     import requests
 
-    excluded_keywords = lower_exclude_keywords + upper_exclude_keywords
+#     url = "https://ebay-average-selling-price.p.rapidapi.com/findCompletedItems"
 
-    payload = {
-        "keywords": item,
-        "excluded_keywords": " ".join(excluded_keywords),
-        "category_id": "1",
-        "max_search_results": "240",
-        "site_id": "0",
-        "remove_outliers": "true"
-    }
-    headers = {
-        "x-rapidapi-key": "5d9343ae8emshb06aed9eda11f7bp1422b9jsnbaa14324cc03",
-        "x-rapidapi-host": "ebay-average-selling-price.p.rapidapi.com",
-        "Content-Type": "application/json"
-    }
 
-    response = requests.post(url, json=payload, headers=headers)
+#     lower_exclude_keywords = ["replica", "réplica", "fake", "vitrine", "présentation", "fan art", "'metal card'", "sleeve", "alt arts", "alt art", "illustration holder", "artwork", "display case", "playmat", "plush"]
+#     upper_exclude_keywords = [k.upper() for k in lower_exclude_keywords]
 
-    return response.json()
+#     excluded_keywords = lower_exclude_keywords + upper_exclude_keywords
+
+#     payload = {
+#         "keywords": item,
+#         "excluded_keywords": " ".join(excluded_keywords),
+#         "category_id": "1",
+#         "max_search_results": "240",
+#         "site_id": "0",
+#         "remove_outliers": "true"
+#     }
+#     headers = {
+#         "x-rapidapi-key": "5d9343ae8emshb06aed9eda11f7bp1422b9jsnbaa14324cc03",
+#         "x-rapidapi-host": "ebay-average-selling-price.p.rapidapi.com",
+#         "Content-Type": "application/json"
+#     }
+
+#     response = requests.post(url, json=payload, headers=headers)
+
+#     return response.json()
 
 
 @router.get("/unique-parse/sold/{query:path}", tags=["ebay"])
@@ -330,13 +333,12 @@ def ebay_sold_items_unique_string(query: str):
             if title and price:
                 title_text = title.get_text().lower()  # Convert to lower case for case insensitive comparison
                 price_text = price.get_text()
-                print(title_text)
                 # Extract price value and unit
                 price_value = float(price_text.replace('$', '').replace(',', ''))
                 price_unit = price_text[0]  # Assuming the unit is the first character
 
                 # Check if any excluded word is in the title
-                if not any(word in title_text for word in excluded_words) and (query.lower() in title_text):
+                if not any(word in title_text for word in excluded_words) and (query.split(" ")[0].lower() in title_text):
                     valid_prices.append(price_value)
 
         # Remove weirdly low amounts (e.g., below 25th percentile)
