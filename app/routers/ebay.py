@@ -212,7 +212,7 @@ def ebay_sold_items(item: str):
     
     # Send a request to the URL
     response = requests.get(url)
-    print(url)
+
     # Check if the request was successful
     if response.status_code == 200:
         # Parse the response content
@@ -249,20 +249,22 @@ def ebay_sold_items(item: str):
             threshold = statistics.quantiles(valid_prices, n=10)[0]  # 25th percentile
             valid_prices = [price for price in valid_prices if price >= threshold]
 
-        # Calculate mean and median prices
-        mean_price = statistics.mean(valid_prices) if valid_prices else 0
-        median_price = statistics.median(valid_prices) if valid_prices else 0
-        lowest_price = min([p for p in valid_prices])
-        highest_price = max([p for p in valid_prices])
+            # Calculate mean and median prices
+            mean_price = statistics.mean(valid_prices) if valid_prices else 0
+            median_price = statistics.median(valid_prices) if valid_prices else 0
+            lowest_price = min([p for p in valid_prices])
+            highest_price = max([p for p in valid_prices])
 
-        return {
-            "mean_price": round(mean_price,2),
-            "median_price": round(median_price,2),
-            "lowest_price": lowest_price,
-            "highest_price": highest_price,
-            "price_unit": price_unit,
-            "prices": [f"{price_unit}{price:.2f}" for price in valid_prices]
-        }
+            return {
+                "mean_price": round(mean_price,2),
+                "median_price": round(median_price,2),
+                "lowest_price": lowest_price,
+                "highest_price": highest_price,
+                "price_unit": price_unit,
+                "prices": [f"{price_unit}{price:.2f}" for price in valid_prices]
+            }
+        else:
+            return None
     else:
         print(f"Failed to retrieve the page. Status code: {response.status_code}")
         return {}
@@ -342,24 +344,26 @@ def ebay_sold_items_unique_string(query: str):
                     valid_prices.append(price_value)
 
         # Remove weirdly low amounts (e.g., below 25th percentile)
-        if valid_prices:
+        if len(valid_prices) > 10:
             threshold = statistics.quantiles(valid_prices, n=10)[0]  # 25th percentile
             valid_prices = [price for price in valid_prices if price >= threshold]
 
-        # Calculate mean and median prices
-        mean_price = statistics.mean(valid_prices) if valid_prices else 0
-        median_price = statistics.median(valid_prices) if valid_prices else 0
-        lowest_price = min([p for p in valid_prices])
-        highest_price = max([p for p in valid_prices])
+            # Calculate mean and median prices
+            mean_price = statistics.mean(valid_prices) if valid_prices else 0
+            median_price = statistics.median(valid_prices) if valid_prices else 0
+            lowest_price = min([p for p in valid_prices])
+            highest_price = max([p for p in valid_prices])
 
-        return {
-            "mean_price": round(mean_price,2),
-            "median_price": round(median_price,2),
-            "lowest_price": lowest_price,
-            "highest_price": highest_price,
-            "price_unit": price_unit,
-            "prices": [f"{price_unit}{price:.2f}" for price in valid_prices]
-        }
+            return {
+                "mean_price": round(mean_price,2),
+                "median_price": round(median_price,2),
+                "lowest_price": lowest_price,
+                "highest_price": highest_price,
+                "price_unit": price_unit,
+                "prices": [f"{price_unit}{price:.2f}" for price in valid_prices]
+            }
+        else:
+            return None
     else:
         print(f"Failed to retrieve the page. Status code: {response.status_code}")
         return {}
