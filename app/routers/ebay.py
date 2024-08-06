@@ -208,8 +208,8 @@ def ebay_sold_items(item: str):
     ]
 
     # URL of the eBay search page
-    url = f"https://www.ebay.com/sch/i.html?_from=R40&_nkw={item}&_sacat=0&LH_Complete=1&LH_Sold=1&_oac=1"
-    
+    url = 'https://www.ebay.com/sch/i.html?_from=R40&_nkw={}&LH_Sold=1'.format(item)
+
     # Send a request to the URL
     response = requests.get(url)
 
@@ -220,14 +220,13 @@ def ebay_sold_items(item: str):
 
         # Find all items
         items = soup.find_all('div', class_='s-item__info')
-        
+
         # List to store prices of valid items
         valid_prices = []
-        price_unit = None
 
-        for item in items:
-            title = item.find('div', class_='s-item__title')
-            price = item.find('span', class_='s-item__price')
+        for i in items:
+            title = i.find('div', class_='s-item__title')
+            price = i.find('span', class_='s-item__price')
 
             if title and price:
                 title_text = title.get_text().lower()  # Convert to lower case for case insensitive comparison
@@ -239,16 +238,21 @@ def ebay_sold_items(item: str):
                 # Extract price value and unit
                 price_value = float(price_text.replace('$', '').replace(',', ''))
                 price_unit = price_text[0]  # Assuming the unit is the first character
-
                 # Check if any excluded word is in the title
-                if not any(word in title_text for word in excluded_words):
-                    valid_prices.append(price_value)
+                if all(w not in title_text for w in excluded_words):
+                    if '' in item or "%22" in item:
+                        if item.replace('"','').split(" ")[0].lower() in title_text or item.replace('%22','').split(" ")[0].lower() in title_text:
+                            valid_prices.append(price_value)
+                    else:
+                        if item.split(" ")[0].lower() in title_text:
+                            valid_prices.append(price_value)
 
         # Remove weirdly low amounts (e.g., below 25th percentile)
         if len(valid_prices) > 10:
             threshold = statistics.quantiles(valid_prices, n=10)[0]  # 25th percentile
             valid_prices = [price for price in valid_prices if price >= threshold]
 
+        if len(valid_prices) > 0:
             # Calculate mean and median prices
             mean_price = statistics.mean(valid_prices) if valid_prices else 0
             median_price = statistics.median(valid_prices) if valid_prices else 0
@@ -267,7 +271,7 @@ def ebay_sold_items(item: str):
             return None
     else:
         print(f"Failed to retrieve the page. Status code: {response.status_code}")
-        return {}
+        return None
 
 
 # @router.get("/parse/sold/{item:path}", tags=["ebay"])
@@ -334,14 +338,17 @@ def ebay_sold_items_unique_string(query: str):
 
             if title and price:
                 title_text = title.get_text().lower()  # Convert to lower case for case insensitive comparison
-                price_text = price.get_text()
-                # Extract price value and unit
-                price_value = float(price_text.replace('$', '').replace(',', ''))
-                price_unit = price_text[0]  # Assuming the unit is the first character
+                if "to" not in price.get_text():
+                    price_text = price.get_text()
+                    # Extract price value and unit
+                    price_value = float(price_text.replace('$', '').replace(',', ''))
+                    price_unit = price_text[0]  # Assuming the unit is the first character
 
-                # Check if any excluded word is in the title
-                if not any(word in title_text for word in excluded_words) and (query.split(" ")[0].lower() in title_text):
-                    valid_prices.append(price_value)
+                    # Check if any excluded word is in the title
+                    if not any(word in title_text for word in excluded_words) and (query.split(" ")[0].lower() in title_text):
+                        valid_prices.append(price_value)
+                else:
+                    continue
 
         # Remove weirdly low amounts (e.g., below 25th percentile)
         if len(valid_prices) > 10:

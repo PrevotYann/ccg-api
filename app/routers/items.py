@@ -309,6 +309,8 @@ def ebay_price_for_item(
                 prices = ebay_sold_items('"' + set_number + '" ' +condition)
                 if prices is None:
                     prices = ebay_sold_items('"' + set_number + '"')
+                    if prices is None:
+                        prices = ebay_sold_items(set_number)
     
     elif table_name == "cards_pokemon":
         card = db.query(CardPokemon).filter(CardPokemon.id == specific_id).one()

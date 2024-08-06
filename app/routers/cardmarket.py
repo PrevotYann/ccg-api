@@ -104,6 +104,5 @@ def cardmarket_get_from_price(game: str, language: str, condition: str, first_ed
                     price = soup.select_one("dl.labeled dd:nth-last-child(9)").text
         except:
             return
-    print(price)
 
     return price
