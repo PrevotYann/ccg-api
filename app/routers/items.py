@@ -301,12 +301,12 @@ def ebay_price_for_item(
         set_number = card.set_number if card.set_number not in ["", None] else card.name if "<ruby>" not in card.name else None
         if set_number is None:
             return
-        formatted_query = '"' + set_number + '" ' + condition + " " + rarity + " 1st" if first_edition else ""
+        formatted_query = '"' + set_number + '" ' + condition + " " + rarity + (" 1st" if first_edition else "")
         prices = ebay_sold_items(formatted_query)
         if prices is None:
-            prices = ebay_sold_items('"' + set_number + '" ' + condition + " 1st" if first_edition else "")
+            prices = ebay_sold_items('"' + set_number + '" ' + condition + (" 1st" if first_edition else ""))
             if prices is None:
-                prices = ebay_sold_items('"' + set_number + '" ' +condition)
+                prices = ebay_sold_items('"' + set_number + '" ' + condition)
                 if prices is None:
                     prices = ebay_sold_items('"' + set_number + '"')
                     if prices is None:

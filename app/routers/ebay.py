@@ -354,7 +354,7 @@ def ebay_sold_items_unique_string(query: str):
         if len(valid_prices) > 10:
             threshold = statistics.quantiles(valid_prices, n=10)[0]  # 25th percentile
             valid_prices = [price for price in valid_prices if price >= threshold]
-
+        if len(valid_prices) > 0:
             # Calculate mean and median prices
             mean_price = statistics.mean(valid_prices) if valid_prices else 0
             median_price = statistics.median(valid_prices) if valid_prices else 0
@@ -373,5 +373,5 @@ def ebay_sold_items_unique_string(query: str):
             return None
     else:
         print(f"Failed to retrieve the page. Status code: {response.status_code}")
-        return {}
+        return None
 
