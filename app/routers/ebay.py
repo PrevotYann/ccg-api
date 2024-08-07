@@ -307,13 +307,14 @@ def ebay_sold_items_fr(item: str):
             if title and price:
                 title_text = title.get_text().lower()  # Convert to lower case for case insensitive comparison
                 price_text = price.get_text()
-
+                print(price_text)
+                print(float(price_text.replace('$', '').replace('EUR', '').replace(',', '.').replace(' ', '')))
                 if "to" in price_text:
                     continue
 
                 # Extract price value and unit
-                price_value = float(price_text.replace('€', '').replace(',', ''))
-                price_unit = price_text[0]  # Assuming the unit is the first character
+                price_value = float(price_text.replace('$', '').replace('EUR', '').replace(',', '.').replace(' ', ''))
+                price_unit = '$' if '$' in price_text else '€' if 'EUR' in price_text else '£' if '£' in price_text else None
                 # Check if any excluded word is in the title
                 if all(w not in title_text for w in excluded_words):
                     if '' in item or "%22" in item:
