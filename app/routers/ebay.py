@@ -307,11 +307,10 @@ def ebay_sold_items_fr(item: str):
             if title and price:
                 title_text = title.get_text().lower()  # Convert to lower case for case insensitive comparison
                 price_text = price.get_text()
-                print(price_text)
-                print(float(price_text.replace('$', '').replace('EUR', '').replace(',', '.').replace(' ', '')))
+            
                 if "to" in price_text:
                     continue
-
+            
                 # Extract price value and unit
                 price_value = float(price_text.replace('$', '').replace('EUR', '').replace(',', '.').replace(' ', ''))
                 price_unit = '$' if '$' in price_text else '€' if 'EUR' in price_text else '£' if '£' in price_text else None
