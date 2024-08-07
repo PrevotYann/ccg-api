@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import CardPokemon, CardYuGiOh, Cardset, Item, ItemPrice, User, UserItem, get_class_by_tablename
 from app.routers.cardmarket import cardmarket_get_from_price
-from app.routers.ebay import ebay_search_query_france_prices, ebay_search_query_us_prices, ebay_sold_items, ebay_sold_items_unique_string
+from app.routers.ebay import ebay_search_query_france_prices, ebay_search_query_us_prices, ebay_sold_items, ebay_sold_items_fr
 from app.schema import Item as ItemSchema, UserItem as UserItemSchema, UserItemInput, UserItemsInput
 
 
@@ -298,34 +298,58 @@ def ebay_price_for_item(
     if table_name == "cards_yugioh":
         card = db.query(CardYuGiOh).filter(CardYuGiOh.id == specific_id).one()
         rarity = card.rarity
+        language = card.language
         set_number = card.set_number if card.set_number not in ["", None] else card.name if "<ruby>" not in card.name else None
-        if set_number is None:
-            return
-        formatted_query = '"' + set_number + '" ' + condition + " " + rarity + (" 1st" if first_edition else "")
-        prices = ebay_sold_items(formatted_query)
-        if prices is None:
-            prices = ebay_sold_items('"' + set_number + '" ' + condition + (" 1st" if first_edition else ""))
+
+        if language == "FR":
+            if set_number is None:
+                return
+            formatted_query = '"' + set_number + '" ' + condition + " " + rarity + (" 1st" if first_edition else "")
+            prices = ebay_sold_items_fr(formatted_query)
             if prices is None:
-                prices = ebay_sold_items('"' + set_number + '" ' + condition)
+                prices = ebay_sold_items_fr('"' + set_number + '" ' + condition + (" 1st" if first_edition else ""))
                 if prices is None:
-                    prices = ebay_sold_items('"' + set_number + '"')
+                    prices = ebay_sold_items_fr('"' + set_number + '" ' + condition)
                     if prices is None:
-                        prices = ebay_sold_items(set_number)
+                        prices = ebay_sold_items_fr('"' + set_number + '"')
+                        if prices is None:
+                            prices = ebay_sold_items_fr(set_number)
+        else:
+            if set_number is None:
+                return
+            formatted_query = '"' + set_number + '" ' + condition + " " + rarity + (" 1st" if first_edition else "")
+            prices = ebay_sold_items(formatted_query)
+            if prices is None:
+                prices = ebay_sold_items('"' + set_number + '" ' + condition + (" 1st" if first_edition else ""))
+                if prices is None:
+                    prices = ebay_sold_items('"' + set_number + '" ' + condition)
+                    if prices is None:
+                        prices = ebay_sold_items('"' + set_number + '"')
+                        if prices is None:
+                            prices = ebay_sold_items(set_number)
     
     elif table_name == "cards_pokemon":
         card = db.query(CardPokemon).filter(CardPokemon.id == specific_id).one()
         cardset_count = db.query(Cardset).filter(Cardset.id == card.cardset_id).one().official_card_count_pokemon
         name = card.name
+        language = card.language
         #rarity = card.rarity
         card_number = str(card.local_id)
         extra_in_query = (" " + extras if extras not in [None, "null"] else "")
         formatted_query = name + ' "' + card_number + "/" + str(cardset_count) + '" ' + condition + " " + extra_in_query
 
-        prices = ebay_sold_items(formatted_query.replace("'",'"'))
-        if prices is None:
-            prices = ebay_sold_items(name + ' "' + card_number + "/" + str(cardset_count) + '" ' + condition)
+        if language == "FR":
+            prices = ebay_sold_items_fr(formatted_query.replace("'",'"'))
             if prices is None:
-                prices = ebay_sold_items(name + ' "' + card_number + "/" + str(cardset_count) + '" ')
+                prices = ebay_sold_items_fr(name + ' "' + card_number + "/" + str(cardset_count) + '" ' + condition)
+                if prices is None:
+                    prices = ebay_sold_items_fr(name + ' "' + card_number + "/" + str(cardset_count) + '" ')
+        else:
+            prices = ebay_sold_items(formatted_query.replace("'",'"'))
+            if prices is None:
+                prices = ebay_sold_items(name + ' "' + card_number + "/" + str(cardset_count) + '" ' + condition)
+                if prices is None:
+                    prices = ebay_sold_items(name + ' "' + card_number + "/" + str(cardset_count) + '" ')
 
     if prices is None:
         return None
