@@ -301,7 +301,7 @@ def ebay_price_for_item(
         language = card.language
         set_number = card.set_number if card.set_number not in ["", None] else card.name if "<ruby>" not in card.name else None
 
-        if language == "FR":
+        if language == "fr":
             if set_number is None:
                 return
             formatted_query = '"' + set_number + '" ' + condition + " " + rarity + (" 1st" if first_edition else "")
@@ -338,7 +338,7 @@ def ebay_price_for_item(
         extra_in_query = (" " + extras if extras not in [None, "null"] else "")
         formatted_query = name + ' "' + card_number + "/" + str(cardset_count) + '" ' + condition + " " + extra_in_query
 
-        if language == "FR":
+        if language == "fr":
             prices = ebay_sold_items_fr(formatted_query.replace("'",'"'))
             if prices is None:
                 prices = ebay_sold_items_fr(name + ' "' + card_number + "/" + str(cardset_count) + '" ' + condition)
