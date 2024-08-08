@@ -313,7 +313,7 @@ def ebay_sold_items_fr(item: str):
             
                 # Extract price value and unit
                 price_value = float(price_text.replace('$', '').replace('EUR', '').replace(',', '.').replace(' ', ''))
-                price_unit = '$' if '$' in price_text else '€' if 'EUR' in price_text else '£' if '£' in price_text else None
+                price_unit = 'DOLLAR' if '$' in price_text else 'EURO' if 'EUR' in price_text else 'POUND' if '£' in price_text else None
                 # Check if any excluded word is in the title
                 if all(w not in title_text for w in excluded_words):
                     if '' in item or "%22" in item:
