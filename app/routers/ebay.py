@@ -232,7 +232,7 @@ def ebay_sold_items(item: str):
                 title_text = title.get_text().lower()  # Convert to lower case for case insensitive comparison
                 price_text = price.get_text()
 
-                if "to" in price_text:
+                if "to" in price_text or "à" in price_text:
                     continue
 
                 # Extract price value and unit
@@ -308,7 +308,7 @@ def ebay_sold_items_fr(item: str):
                 title_text = title.get_text().lower()  # Convert to lower case for case insensitive comparison
                 price_text = price.get_text()
             
-                if "to" in price_text:
+                if "to" in price_text or "à" in price_text:
                     continue
             
                 # Extract price value and unit
@@ -414,7 +414,7 @@ def ebay_sold_items_unique_string(query: str):
 
             if title and price:
                 title_text = title.get_text().lower()  # Convert to lower case for case insensitive comparison
-                if "to" not in price.get_text():
+                if "to" not in price.get_text() or "à" not in price.get_text():
                     price_text = price.get_text()
                     # Extract price value and unit
                     price_value = float(price_text.replace('$', '').replace(',', ''))

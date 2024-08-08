@@ -23,6 +23,7 @@ conditions = {
     "mint": "MINT"
 }
 
+DOLLAR_TO_EURO = 0.92
 
 #################################
 #################################
@@ -614,6 +615,47 @@ def query_items_with_dynamic_join(
         "total_items": total_items,
         "items": results
     }
+
+
+@router.get("/user/{username}/collection/prices", tags=["items"])
+def get_user_collection_prices(
+    username: str,
+    db: Session = Depends(get_db)
+):
+    user = db.query(User).filter(User.username == username).one_or_none()
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    user_items_prices = (
+        db.query(ItemPrice)
+        .select_from(UserItem)
+        .join(Item, Item.id == UserItem.item_id)
+        .outerjoin(ItemPrice, UserItem.item_id == ItemPrice.item_id)
+        .filter(
+            UserItem.user_id == user.id,
+            or_(
+                ItemPrice.id == None,
+                and_(
+                    UserItem.condition == ItemPrice.condition,
+                    UserItem.is_first_edition == ItemPrice.is_first_edition
+                )
+            )
+        )
+    ).all()
+
+    low = sum([float(i.ebay_lowest) if i.ebay_currency == "DOLLAR" else float(i.ebay_lowest) / DOLLAR_TO_EURO for i in user_items_prices if i is not None])
+    high = sum([float(i.ebay_highest) if i.ebay_currency == "DOLLAR" else float(i.ebay_lowest) / DOLLAR_TO_EURO for i in user_items_prices if i is not None])
+    mean = sum([float(i.ebay_mean) if i.ebay_currency == "DOLLAR" else float(i.ebay_lowest) / DOLLAR_TO_EURO for i in user_items_prices if i is not None])
+    median = sum([float(i.ebay_median) if i.ebay_currency == "DOLLAR" else float(i.ebay_lowest) / DOLLAR_TO_EURO for i in user_items_prices if i is not None])
+
+    return {
+        "low": round(low, 2),
+        "high": round(high, 2),
+        "mean": round(mean, 2),
+        "median": round(median, 2),
+        "currency": "DOLLAR"
+    }
+
 
 @router.post("/user/{username}/prices/ebay/update", tags=["items"])
 def update_all_user_item_ebay_prices(
