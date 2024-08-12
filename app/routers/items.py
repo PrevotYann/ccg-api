@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import CardPokemon, CardYuGiOh, Cardset, Item, ItemPrice, User, UserItem, get_class_by_tablename
 from app.routers.cardmarket import cardmarket_get_from_price
-from app.routers.ebay import ebay_search_query_france_prices, ebay_search_query_us_prices, ebay_sold_items, ebay_sold_items_fr
+from app.routers.ebay import ebay_search_query_france_prices, ebay_search_query_us_prices, ebay_selling_items, ebay_selling_items_fr, ebay_sold_items, ebay_sold_items_fr
 from app.schema import Item as ItemSchema, UserItem as UserItemSchema, UserItemInput, UserItemsInput
 
 
@@ -315,6 +315,8 @@ def ebay_price_for_item(
                         prices = ebay_sold_items_fr('"' + set_number + '"')
                         if prices is None:
                             prices = ebay_sold_items_fr(set_number)
+                            if prices is None:
+                                prices = ebay_selling_items_fr('"' + set_number + '"')
         else:
             if set_number is None:
                 return
@@ -328,6 +330,8 @@ def ebay_price_for_item(
                         prices = ebay_sold_items('"' + set_number + '"')
                         if prices is None:
                             prices = ebay_sold_items(set_number)
+                            if prices is None:
+                                prices = ebay_selling_items('"' + set_number + '"')
     
     elif table_name == "cards_pokemon":
         card = db.query(CardPokemon).filter(CardPokemon.id == specific_id).one()
@@ -345,12 +349,16 @@ def ebay_price_for_item(
                 prices = ebay_sold_items_fr(name + ' "' + card_number + "/" + str(cardset_count) + '" ' + condition)
                 if prices is None:
                     prices = ebay_sold_items_fr(name + ' "' + card_number + "/" + str(cardset_count) + '" ')
+                    if prices is None:
+                        ebay_selling_items_fr(name + ' "' + card_number + "/" + str(cardset_count) + '" ')
         else:
             prices = ebay_sold_items(formatted_query.replace("'",'"'))
             if prices is None:
                 prices = ebay_sold_items(name + ' "' + card_number + "/" + str(cardset_count) + '" ' + condition)
                 if prices is None:
                     prices = ebay_sold_items(name + ' "' + card_number + "/" + str(cardset_count) + '" ')
+                    if prices is None:
+                        prices = ebay_selling_items(name + ' "' + card_number + "/" + str(cardset_count) + '" ')
 
     if prices is None:
         return None
