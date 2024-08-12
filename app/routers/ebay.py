@@ -198,7 +198,7 @@ def ebay_search_query_USA_with_condition(query: str, condition: str):
 #     return response.json()
 
 
-@router.get("/parse/sold/{item:path}", tags=["ebay"])
+@router.post("/parse/sold", tags=["ebay"])
 def ebay_sold_items(item: str):
     # List of excluded words (must be in lower case for case insensitive comparison)
     excluded_words = [
@@ -274,7 +274,7 @@ def ebay_sold_items(item: str):
         return None
 
 
-@router.get("/parse/fr/sold/{item:path}", tags=["ebay"])
+@router.post("/parse/fr/sold", tags=["ebay"])
 def ebay_sold_items_fr(item: str):
     # List of excluded words (must be in lower case for case insensitive comparison)
     excluded_words = [
@@ -381,7 +381,7 @@ def ebay_sold_items_fr(item: str):
 #     return response.json()
 
 
-@router.get("/unique-parse/sold/{query:path}", tags=["ebay"])
+@router.post("/unique-parse/sold", tags=["ebay"])
 def ebay_sold_items_unique_string(query: str):
     # List of excluded words (must be in lower case for case insensitive comparison)
     excluded_words = [
