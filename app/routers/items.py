@@ -305,10 +305,10 @@ def ebay_price_for_item(
         if language == "fr":
             if set_number is None:
                 return
-            formatted_query = '"' + set_number + '" ' + condition + " " + rarity + (" 1st" if first_edition else "")
+            formatted_query = '"' + set_number + '" ' + condition + " " + rarity + (" 1ere" if first_edition else "")
             prices = ebay_sold_items_fr(formatted_query)
             if prices is None:
-                prices = ebay_sold_items_fr('"' + set_number + '" ' + condition + (" 1st" if first_edition else ""))
+                prices = ebay_sold_items_fr('"' + set_number + '" ' + condition + (" 1ere" if first_edition else ""))
                 if prices is None:
                     prices = ebay_sold_items_fr('"' + set_number + '" ' + condition)
                     if prices is None:
