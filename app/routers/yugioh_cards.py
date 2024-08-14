@@ -116,3 +116,23 @@ def get_yugioh_cards_from_cardset_prefix_and_language(
         .filter(Cardset.prefix == cardset_prefix, Cardset.language == language_code)
         .all()
     )
+
+
+@router.get("/random/{limit}", tags=["cards"])
+def get_random_yugioh_cards(limit: int, db: Session = Depends(get_db)):
+    return (
+        db.query(CardYuGiOh)
+        .order_by(func.rand())
+        .limit(limit)
+        .all()
+    )
+
+
+@router.get("/latest/{limit}", tags=["cards"])
+def get_latest_yugioh_cards(limit: int, db: Session = Depends(get_db)):
+    return (
+        db.query(CardYuGiOh)
+        .order_by(CardYuGiOh.id)
+        .limit(limit)
+        .all()
+    )

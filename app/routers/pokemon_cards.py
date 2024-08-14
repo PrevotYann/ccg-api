@@ -100,3 +100,21 @@ def get_pokemon_card_from_set_number(name: str, language: str, db: Session = Dep
         .all()
     )
 
+
+@router.get("/random/{limit}", tags=["cards"])
+def get_random_pokemon_cards(limit: int, db: Session = Depends(get_db)):
+    return (
+        db.query(CardPokemon)
+        .order_by(func.rand())
+        .limit(limit)
+    )
+
+
+@router.get("/latest/{limit}", tags=["cards"])
+def get_latest_pokemon_cards(limit: int, db: Session = Depends(get_db)):
+    return (
+        db.query(CardPokemon)
+        .order_by(CardPokemon.id)
+        .limit(limit)
+        .all()
+    )
