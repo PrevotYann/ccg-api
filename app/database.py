@@ -1,20 +1,31 @@
-from sqlalchemy import create_engine
+import os
+from sqlalchemy import URL, create_engine, MetaData
+from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-DATABASE_URL = "mysql+pymysql://collecthor_clearlybee:36ce5163b5b3b7d82ec578b256477eed7f01289e@wq1.h.filess.io:3305/collecthor_clearlybee?charset=utf8"
-#DATABASE_URL = "mysql+pymysql://root:%40Danganronpa47@91.199.227.99:10965/ccgapi?charset=utf8"
 
-engine = create_engine(
-    DATABASE_URL,
-    connect_args={"connect_timeout": 10},
-    pool_pre_ping=True,
-    pool_size=10,
-    max_overflow=20,
-    pool_timeout=30,
-    pool_recycle=3600)
+database_username = os.environ.get('DATABASE_USERNAME', 'collecthor_clearlybee')
+database_password = os.environ.get('DATABASE_PASSWORD', '36ce5163b5b3b7d82ec578b256477eed7f01289e')
+database_url = os.environ.get('DATABASE_URL', 'wq1.h.filess.io')
+database_name = os.environ.get('DATABASE_NAME', 'collecthor_clearlybee')
 
+print('DB URL:', database_url)
+print('DB:', database_name)
+
+url_object = URL.create(
+    "mysql+pymysql",
+    username=database_username,
+    password=database_password,
+    host=database_url,
+    port=3305,
+    database=database_name,
+)
+
+engine = create_engine(url_object)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
+Base = declarative_base()
+meta = MetaData()
+conn = engine.connect()
 
 def get_db():
     db = SessionLocal()
