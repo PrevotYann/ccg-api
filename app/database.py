@@ -19,6 +19,11 @@ url_object = URL.create(
     host=database_url,
     port=3305,
     database=database_name,
+    pool_size=5,           # Set the maximum number of connections in the pool
+    max_overflow=10,        # Allow up to this many overflow connections (over pool_size)
+    pool_recycle=1800,      # Recycle connections after 30 minutes
+    pool_timeout=30,        # Timeout after 30 seconds if a connection cannot be obtained
+    pool_pre_ping=True      # Checks connection health before using it
 )
 
 engine = create_engine(url_object)
