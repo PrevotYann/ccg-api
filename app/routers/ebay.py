@@ -200,78 +200,57 @@ def ebay_search_query_USA_with_condition(query: str, condition: str):
 
 @router.post("/parse/sold", tags=["ebay"])
 def ebay_sold_items(item: str):
-    # List of excluded words (must be in lower case for case insensitive comparison)
-    excluded_words = [
-        "shop on ebay", "replica", "réplica", "fake", "vitrine", "présentation", 
-        "fan art", "metal card", "sleeve", 
-        "illustration holder", "artwork", "display case", "playmat", "plush"
-    ]
-
-    # URL of the eBay search page
-    url = 'https://www.ebay.com/sch/i.html?_from=R40&_nkw={}&LH_Sold=1'.format(item)
-
-    # Send a request to the URL
+    excluded_words = {
+        "shop on ebay", "replica", "réplica", "fake", "vitrine", "présentation",
+        "fan art", "metal card", "sleeve", "illustration holder", "artwork",
+        "display case", "playmat", "plush"
+    }
+    url = f'https://www.ebay.com/sch/i.html?_from=R40&_nkw={item}&LH_Sold=1'
     response = requests.get(url)
 
-    # Check if the request was successful
-    if response.status_code == 200:
-        # Parse the response content
-        soup = BeautifulSoup(response.content, 'html.parser')
-
-        # Find all items
-        items = soup.find_all('div', class_='s-item__info')
-
-        # List to store prices of valid items
-        valid_prices = []
-
-        for i in items:
-            title = i.find('div', class_='s-item__title')
-            price = i.find('span', class_='s-item__price')
-
-            if title and price:
-                title_text = title.get_text().lower()  # Convert to lower case for case insensitive comparison
-                price_text = price.get_text()
-
-                if "to" in price_text or "à" in price_text:
-                    continue
-
-                # Extract price value and unit
-                price_value = float(price_text.replace('$', '').replace(',', ''))
-                price_unit = price_text[0]  # Assuming the unit is the first character
-                # Check if any excluded word is in the title
-                if all(w not in title_text for w in excluded_words):
-                    if '' in item or "%22" in item:
-                        if item.replace('"','').split(" ")[0].lower() in title_text or item.replace('%22','').split(" ")[0].lower() in title_text:
-                            valid_prices.append(price_value)
-                    else:
-                        if item.split(" ")[0].lower() in title_text:
-                            valid_prices.append(price_value)
-
-        # Remove weirdly low amounts (e.g., below 25th percentile)
-        if len(valid_prices) > 10:
-            threshold = statistics.quantiles(valid_prices, n=10)[0]  # 25th percentile
-            valid_prices = [price for price in valid_prices if price >= threshold]
-
-        if len(valid_prices) > 0:
-            # Calculate mean and median prices
-            mean_price = statistics.mean(valid_prices) if valid_prices else 0
-            median_price = statistics.median(valid_prices) if valid_prices else 0
-            lowest_price = min([p for p in valid_prices])
-            highest_price = max([p for p in valid_prices])
-
-            return {
-                "mean_price": round(mean_price,2),
-                "median_price": round(median_price,2),
-                "lowest_price": lowest_price,
-                "highest_price": highest_price,
-                "price_unit": price_unit,
-                "prices": [f"{price_unit}{price:.2f}" for price in valid_prices]
-            }
-        else:
-            return None
-    else:
-        print(f"Failed to retrieve the page. Status code: {response.status_code}")
+    if response.status_code != 200:
         return None
+
+    soup = BeautifulSoup(response.content, 'html.parser')
+    items = soup.find_all('div', class_='s-item__info')
+
+    valid_prices = []
+    for i in items:
+        title = i.find('div', class_='s-item__title')
+        price = i.find('span', class_='s-item__price')
+
+        if not title or not price:
+            continue
+
+        title_text = title.get_text().lower()
+        price_text = price.get_text()
+
+        # Skip invalid price formats
+        if "to" in price_text or "à" in price_text:
+            continue
+
+        price_value = float(price_text.replace('$', '').replace(',', ''))
+        price_unit = price_text[0]
+
+        if not any(word in title_text for word in excluded_words):
+            if item.replace('"', '').split(" ")[0].lower() in title_text:
+                valid_prices.append(price_value)
+
+    # Filter and calculate
+    if len(valid_prices) > 10:
+        threshold = statistics.quantiles(valid_prices, n=10)[0]
+        valid_prices = [p for p in valid_prices if p >= threshold]
+
+    if valid_prices:
+        return {
+            "mean_price": round(statistics.mean(valid_prices), 2),
+            "median_price": round(statistics.median(valid_prices), 2),
+            "lowest_price": min(valid_prices),
+            "highest_price": max(valid_prices),
+            "price_unit": "$",  # Update based on your scraping logic
+            "prices": [f"${price:.2f}" for price in valid_prices],
+        }
+    return None
 
 
 @router.post("/parse/selling", tags=["ebay"])

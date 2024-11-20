@@ -284,123 +284,96 @@ def ebay_price_for_item(
     first_edition: bool,
     db: Session = Depends(get_db),
 ):
+    # Fetch existing or create item
     existing_item = get_item_from_source_table_and_id(
         origin_table_name=table_name, origin_id=specific_id, db=db
     )
+    item_to_look_for_price = existing_item or create_item(
+        origin_table_name=table_name, origin_id=specific_id, db=db
+    )
 
-    if existing_item is not None:
-        item_to_look_for_price = existing_item
-    else:
-        item_to_look_for_price = create_item(
-            origin_table_name=table_name, origin_id=specific_id, db=db
-        )
-    
-    # defining prices
+    # Common helper to query eBay prices
+    def get_prices_from_ebay(query, language):
+        ebay_func = ebay_sold_items_fr if language == "fr" else ebay_sold_items
+        fallback_queries = [
+            query,
+            query.rsplit(" ", 1)[0],  # Remove last term
+            query.split('"')[1] if '"' in query else query,  # Focus on set_number
+        ]
+        for q in fallback_queries:
+            prices = ebay_func(q)
+            if prices:
+                return prices
+        # Final fallback: searching items actively listed
+        return ebay_selling_items_fr(query) if language == "fr" else ebay_selling_items(query)
+
+    # Process for "cards_yugioh"
     if table_name == "cards_yugioh":
         card = db.query(CardYuGiOh).filter(CardYuGiOh.id == specific_id).one()
-        rarity = card.rarity
-        language = card.language
-        set_number = card.set_number if card.set_number not in ["", None] else card.name if "<ruby>" not in card.name else None
+        set_number = (
+            card.set_number
+            if card.set_number not in ["", None]
+            else card.name if "<ruby>" not in card.name else None
+        )
+        if not set_number:
+            return None
 
-        if language == "fr":
-            if set_number is None:
-                return
-            formatted_query = '"' + set_number + '" ' + condition + " " + rarity + (" 1ere" if first_edition else "")
-            prices = ebay_sold_items_fr(formatted_query)
-            if prices is None:
-                prices = ebay_sold_items_fr('"' + set_number + '" ' + condition + (" 1ere" if first_edition else ""))
-                if prices is None:
-                    prices = ebay_sold_items_fr('"' + set_number + '" ' + condition)
-                    if prices is None:
-                        prices = ebay_sold_items_fr('"' + set_number + '"')
-                        if prices is None:
-                            prices = ebay_sold_items_fr(set_number)
-                            if prices is None:
-                                prices = ebay_selling_items_fr('"' + set_number + '"')
-        else:
-            if set_number is None:
-                return
-            formatted_query = '"' + set_number + '" ' + condition + " " + rarity + (" 1st" if first_edition else "")
-            prices = ebay_sold_items(formatted_query)
-            if prices is None:
-                prices = ebay_sold_items('"' + set_number + '" ' + condition + (" 1st" if first_edition else ""))
-                if prices is None:
-                    prices = ebay_sold_items('"' + set_number + '" ' + condition)
-                    if prices is None:
-                        prices = ebay_sold_items('"' + set_number + '"')
-                        if prices is None:
-                            prices = ebay_sold_items(set_number)
-                            if prices is None:
-                                prices = ebay_selling_items('"' + set_number + '"')
-    
+        formatted_query = f'"{set_number}" {condition} {card.rarity} {"1ere" if first_edition else ""}'
+        prices = get_prices_from_ebay(formatted_query, card.language)
+
+    # Process for "cards_pokemon"
     elif table_name == "cards_pokemon":
         card = db.query(CardPokemon).filter(CardPokemon.id == specific_id).one()
         cardset_count = db.query(Cardset).filter(Cardset.id == card.cardset_id).one().official_card_count_pokemon
-        name = card.name
-        language = card.language
-        #rarity = card.rarity
-        card_number = str(card.local_id)
-        extra_in_query = (" " + extras if extras not in [None, "null"] else "")
-        formatted_query = name + ' "' + card_number + "/" + str(cardset_count) + '" ' + condition + " " + extra_in_query
+        extra_in_query = f" {extras}" if extras not in [None, "null"] else ""
+        formatted_query = f'{card.name} "{card.local_id}/{cardset_count}" {condition}{extra_in_query}'
+        prices = get_prices_from_ebay(formatted_query, card.language)
 
-        if language == "fr":
-            prices = ebay_sold_items_fr(formatted_query.replace("'",'"'))
-            if prices is None:
-                prices = ebay_sold_items_fr(name + ' "' + card_number + "/" + str(cardset_count) + '" ' + condition)
-                if prices is None:
-                    prices = ebay_sold_items_fr(name + ' "' + card_number + "/" + str(cardset_count) + '" ')
-                    if prices is None:
-                        ebay_selling_items_fr(name + ' "' + card_number + "/" + str(cardset_count) + '" ')
-        else:
-            prices = ebay_sold_items(formatted_query.replace("'",'"'))
-            if prices is None:
-                prices = ebay_sold_items(name + ' "' + card_number + "/" + str(cardset_count) + '" ' + condition)
-                if prices is None:
-                    prices = ebay_sold_items(name + ' "' + card_number + "/" + str(cardset_count) + '" ')
-                    if prices is None:
-                        prices = ebay_selling_items(name + ' "' + card_number + "/" + str(cardset_count) + '" ')
+    else:
+        return {"error": "Unsupported table_name"}
 
-    if prices is None:
+    # Handle missing price results
+    if not prices:
         return None
-    now = datetime.now()
 
-    # Check if item exist with this condition, and first edition check for the current item and user
+    # Upsert prices into DB
+    now = datetime.now()
     item_price = (
         db.query(ItemPrice)
         .filter(
             ItemPrice.item_id == item_to_look_for_price.id,
             ItemPrice.condition == condition,
-            ItemPrice.is_first_edition == first_edition
+            ItemPrice.is_first_edition == first_edition,
         )
         .one_or_none()
     )
 
-    if item_price is None:
+    if not item_price:
         item_price = ItemPrice(
-            item_id = item_to_look_for_price.id,
-            condition = condition,
-            ebay_currency = prices["price_unit"],
-            ebay_last_update = now,
-            ebay_highest = "%.2f" % prices["highest_price"],
-            ebay_lowest = "%.2f" % prices["lowest_price"],
-            ebay_mean = "%.2f" % prices["mean_price"],
-            ebay_median = "%.2f" % prices["median_price"],
-            is_first_edition = first_edition
+            item_id=item_to_look_for_price.id,
+            condition=condition,
+            ebay_currency=prices["price_unit"],
+            ebay_last_update=now,
+            ebay_highest=f"{prices['highest_price']:.2f}",
+            ebay_lowest=f"{prices['lowest_price']:.2f}",
+            ebay_mean=f"{prices['mean_price']:.2f}",
+            ebay_median=f"{prices['median_price']:.2f}",
+            is_first_edition=first_edition,
         )
         db.add(item_price)
     else:
         item_price.ebay_last_update = now
         item_price.ebay_currency = prices["price_unit"]
-        item_price.ebay_highest = "%.2f" % prices["highest_price"]
-        item_price.ebay_lowest = "%.2f" % prices["lowest_price"]
-        item_price.ebay_mean = "%.2f" % prices["mean_price"]
-        item_price.ebay_median = "%.2f" % prices["median_price"]
+        item_price.ebay_highest = f"{prices['highest_price']:.2f}"
+        item_price.ebay_lowest = f"{prices['lowest_price']:.2f}"
+        item_price.ebay_mean = f"{prices['mean_price']:.2f}"
+        item_price.ebay_median = f"{prices['median_price']:.2f}"
         item_price.is_first_edition = first_edition
         db.flush()
-    
-    db.commit()
 
+    db.commit()
     return prices
+
 
 
 @router.get("/table/{table_name}/item/{specific_id}/ebay/prices/all", tags=["items"])
