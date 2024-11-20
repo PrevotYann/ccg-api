@@ -1,3 +1,4 @@
+from random import randint
 from fastapi import APIRouter, Depends
 from sqlalchemy import and_, func
 from sqlalchemy.orm import Session
@@ -37,15 +38,13 @@ def get_pokemon_card_from_query(query: str, db: Session = Depends(get_db)):
     if local_id_query:
         # More specific search when a local_id is present
         search_results = db.query(CardPokemon).filter(
-            and_(
-                func.lower(clean_name).ilike(f"%{name_query.lower()}%"),
-                CardPokemon.local_id.ilike(f"{local_id_query}%")
-            )
+            clean_name.ilike(f"%{name_query.lower()}%"),
+            CardPokemon.local_id.startswith(local_id_query)
         ).all()
     else:
         # Broader search when no local_id is found, treat the whole query as a potential name
         search_results = db.query(CardPokemon).filter(
-            func.lower(clean_name).ilike(f"%{name_query.lower()}%")
+            clean_name.ilike(f"%{name_query.lower()}%")
         ).all()
 
     return search_results
@@ -103,11 +102,16 @@ def get_pokemon_card_from_set_number(name: str, language: str, db: Session = Dep
 
 @router.get("/random/{limit}", tags=["cards"])
 def get_random_pokemon_cards(limit: int, db: Session = Depends(get_db)):
-    return (
-        db.query(CardPokemon)
-        .order_by(func.rand())
-        .limit(limit)
-    )
+    # Get the maximum ID in the table
+    max_id = db.query(func.max(CardPokemon.id)).scalar()
+
+    # Generate random IDs within the range
+    random_ids = [randint(1, max_id) for _ in range(limit)]
+
+    # Fetch cards with these random IDs
+    random_cards = db.query(CardPokemon).filter(CardPokemon.id.in_(random_ids)).all()
+
+    return random_cards
 
 
 @router.get("/latest/{limit}", tags=["cards"])
