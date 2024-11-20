@@ -6,6 +6,7 @@ from app.database import get_db
 from app.models import Cardset, CardYuGiOh
 
 import re
+from random import randint
 
 router = APIRouter(prefix="/cards/yugioh")
 
@@ -120,12 +121,16 @@ def get_yugioh_cards_from_cardset_prefix_and_language(
 
 @router.get("/random/{limit}", tags=["cards"])
 def get_random_yugioh_cards(limit: int, db: Session = Depends(get_db)):
-    return (
-        db.query(CardYuGiOh)
-        .order_by(func.rand())
-        .limit(limit)
-        .all()
-    )
+    # Get the maximum ID in the table
+    max_id = db.query(func.max(CardYuGiOh.id)).scalar()
+
+    # Generate random IDs within the range
+    random_ids = [randint(1, max_id) for _ in range(limit)]
+
+    # Fetch cards with these random IDs
+    random_cards = db.query(CardYuGiOh).filter(CardYuGiOh.id.in_(random_ids)).all()
+
+    return random_cards
 
 
 @router.get("/latest/{limit}", tags=["cards"])
