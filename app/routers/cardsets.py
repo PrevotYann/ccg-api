@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import Cardset, CardYuGiOh, CardPokemon
+from app.models import CardFFTCG, Cardset, CardYuGiOh, CardPokemon
 
 
 router = APIRouter(prefix="/cardsets")
@@ -46,6 +46,20 @@ def get_yugioh_cardsets_by_language(language: str, db: Session = Depends(get_db)
     )
 
 
+@router.get("/fftcg/all", tags=["cardsets"])
+def get_pokemon_cardsets(db: Session = Depends(get_db)):
+    return db.query(Cardset).filter(Cardset.gameId == 3).all()
+
+
+@router.get("/fftcg/all/language/{language}", tags=["cardsets"])
+def get_pokemon_cardset_by_language(language: str, db: Session = Depends(get_db)):
+    return (
+        db.query(Cardset)
+        .filter(Cardset.language == language, Cardset.gameId == 3)
+        .all()
+    )
+
+
 @router.get("/yugioh/id/{id}/cards", tags=["cardsets"])
 def get_yugioh_cards_per_cardset_id(id: int, db: Session = Depends(get_db)):
     return db.query(CardYuGiOh).filter(CardYuGiOh.cardsetId == id).all()
@@ -54,3 +68,8 @@ def get_yugioh_cards_per_cardset_id(id: int, db: Session = Depends(get_db)):
 @router.get("/pokemon/id/{id}/cards", tags=["cardsets"])
 def get_pokemon_cards_per_cardset_id(id: int, db: Session = Depends(get_db)):
     return db.query(CardPokemon).filter(CardPokemon.cardset_id == id).all()
+
+
+@router.get("/fftcg/id/{id}/cards", tags=["cardsets"])
+def get_fftcg_cards_per_cardset_id(id: int, db: Session = Depends(get_db)):
+    return db.query(CardFFTCG).filter(CardFFTCG.cardset_id == id).all()

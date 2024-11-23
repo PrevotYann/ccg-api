@@ -1,3 +1,4 @@
+import html
 from random import randint
 from fastapi import APIRouter, Depends
 from sqlalchemy import func
@@ -11,9 +12,19 @@ import re
 router = APIRouter(prefix="/cards/fftcg")
 
 
-def normalize_text(text):
-    """Remove punctuation and other special characters, replace them with nothing."""
-    return re.sub(r'[^\w\s]', '', text)
+def normalize_text(text: str):
+    """Remove punctuation and other special characters, replace them with nothing, and decode HTML entities."""
+    # Decode HTML entities (e.g., &middot; becomes ·)
+    text = html.unescape(text)
+    
+    # Remove any invisible characters (e.g., zero-width spaces, etc.)
+    text = re.sub(r'[\u200B-\u200D\uFEFF]', '', text)  # Removes zero-width space and similar
+    
+    # Remove punctuation and special characters, replace with nothing, and convert to lower case
+    text = re.sub(r'[^\w\s]', '', text).lower()
+    
+    return text.strip()  # Also strip any surrounding whitespace
+
 
 @router.get("/search", tags=["cards"])
 def get_fftcg_card_from_query(query: str, db: Session = Depends(get_db)):
@@ -22,7 +33,7 @@ def get_fftcg_card_from_query(query: str, db: Session = Depends(get_db)):
 
     # Broader search when no local_id is found, treat the whole query as a potential name
     search_results = db.query(CardFFTCG).filter(
-        CardFFTCG.name.ilike(f"%{normalized_query.lower()}%")
+        CardFFTCG.name.ilike(f"%{normalized_query}%")
     ).all()
 
     return search_results
@@ -42,7 +53,7 @@ def get_yugioh_card_from_id(card_id: int, db: Session = Depends(get_db)):
 @router.get("/set_prefix/{set_prefix}",
             tags=["cards"]
 )
-def get_pokemon_card_from_code(set_prefix: str, db: Session = Depends(get_db)):
+def get_fftcg_card_from_code(set_prefix: str, db: Session = Depends(get_db)):
     return (
         db.query(CardFFTCG)
         .filter(CardFFTCG.code.contains(set_prefix.split("-")[0]))
@@ -53,7 +64,7 @@ def get_pokemon_card_from_code(set_prefix: str, db: Session = Depends(get_db)):
 @router.get("/set_prefix/{set_prefix}/language/{language}",
             tags=["cards"]
 )
-def get_pokemon_card_from_set_prefix_and_language(set_prefix: str, language: str, db: Session = Depends(get_db)):
+def get_fftcg_card_from_set_prefix_and_language(set_prefix: str, language: str, db: Session = Depends(get_db)):
     return (
         db.query(CardFFTCG)
         .filter(
@@ -67,7 +78,7 @@ def get_pokemon_card_from_set_prefix_and_language(set_prefix: str, language: str
 @router.get("/name/{name}/language/{language}",
             tags=["cards"]
 )
-def get_pokemon_card_from_set_number(name: str, language: str, db: Session = Depends(get_db)):
+def get_fftcg_card_from_set_number(name: str, language: str, db: Session = Depends(get_db)):
     return (
         db.query(CardFFTCG)
         .filter(
@@ -79,7 +90,7 @@ def get_pokemon_card_from_set_number(name: str, language: str, db: Session = Dep
 
 
 @router.get("/random/{limit}", tags=["cards"])
-def get_random_pokemon_cards(limit: int, db: Session = Depends(get_db)):
+def get_random_fftcg_cards(limit: int, db: Session = Depends(get_db)):
     # Get the maximum ID in the table
     max_id = db.query(func.max(CardFFTCG.id)).scalar()
 
@@ -93,7 +104,7 @@ def get_random_pokemon_cards(limit: int, db: Session = Depends(get_db)):
 
 
 @router.get("/latest/{limit}", tags=["cards"])
-def get_latest_pokemon_cards(limit: int, db: Session = Depends(get_db)):
+def get_latest_fftcg_cards(limit: int, db: Session = Depends(get_db)):
     return (
         db.query(CardFFTCG)
         .order_by(CardFFTCG.id)
