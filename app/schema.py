@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from enum import Enum
 from typing import Dict, List, Optional
 
 from pydantic import BaseModel
@@ -192,6 +193,42 @@ class YuGiOhCardSchema(BaseModel):
     class Config:
         from_attributes = True
 
+
+class ElementEnum(Enum):
+    # You can define possible values for elements here based on the game data (replace with actual values)
+    FIRE = "Fire"
+    WATER = "Water"
+    EARTH = "Earth"
+    WIND = "Wind"
+    LIGHTNING = "Lightning"
+    LIGHT = "Light"
+    DARK = "Dark"
+
+
+class FFTCGCardSchema(BaseModel):
+    id: int
+    category_1: Optional[str] = None
+    category_2: Optional[str] = None
+    code: str
+    cost: str
+    element: List[ElementEnum]  # Element is a list of enum values
+    ex_burst: bool = False  # Default is False (0)
+    full_image: Optional[str] = None
+    thumb_image: Optional[str] = None
+    lang: str
+    job: Optional[str] = None
+    name: Optional[str] = None
+    text: Optional[str] = None
+    type: Optional[str] = None
+    multicard: bool = False  # Default is False (0)
+    power: Optional[str] = None
+    rarity: str
+    set: List[str]  # List of sets the card belongs to
+    
+    class Config:
+        # Allow arbitrary types in the enum and allow underscores in keys
+        use_enum_values = True
+        allow_population_by_field_name = True
 
 class Item(BaseModel):
     id: Optional[int]

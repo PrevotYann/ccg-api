@@ -1,6 +1,8 @@
+from enum import Enum
 from sqlalchemy import create_engine, Boolean, Column, DateTime, Integer, String, Text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.dialects.mysql import JSON
 
 DATABASE_URL = (
     "mysql+pymysql://root:%40Danganronpa47@91.199.227.99:10965/ccgapi?charset=utf8"
@@ -94,6 +96,38 @@ class CardYuGiOh(Base):
     pendulum_effect = Column(Text, nullable=True)
     link_arrows = Column(Text, nullable=True)
     property = Column(String(250), nullable=True)
+
+
+class ElementEnum(Enum):
+    FIRE = "Fire"
+    WATER = "Water"
+    EARTH = "Earth"
+    WIND = "Wind"
+    LIGHTNING = "Lightning"
+    LIGHT = "Light"
+    DARK = "Dark"
+
+class CardFFTCG(Base):
+    __tablename__ = 'cards_fftcg'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    category_1 = Column(Text, nullable=True)
+    category_2 = Column(Text, nullable=True)
+    code = Column(Text, nullable=False)
+    cost = Column(Text, nullable=False)
+    element = Column(JSON, nullable=False)
+    ex_burst = Column(Boolean, nullable=False, default=False)
+    full_image = Column(Text, nullable=True)
+    thumb_image = Column(Text, nullable=True)
+    lang = Column(String(5), nullable=False)
+    job = Column(Text, nullable=True)
+    name = Column(Text, nullable=True)
+    text = Column(Text, nullable=True)
+    type = Column(Text, nullable=True)
+    multicard = Column(Boolean, nullable=False, default=False)
+    power = Column(Text, nullable=True)
+    rarity = Column(Text, nullable=False)
+    cardset_id = Column(Integer, nullable=False)
 
 
 class Item(Base):
