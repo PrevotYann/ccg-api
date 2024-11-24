@@ -1,6 +1,6 @@
 from random import randint
 from fastapi import APIRouter, Depends
-from sqlalchemy import and_, func
+from sqlalchemy import and_, desc, func
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -118,7 +118,7 @@ def get_random_pokemon_cards(limit: int, db: Session = Depends(get_db)):
 def get_latest_pokemon_cards(limit: int, db: Session = Depends(get_db)):
     return (
         db.query(CardPokemon)
-        .order_by(CardPokemon.id)
+        .order_by(desc(CardPokemon.id))
         .limit(limit)
         .all()
     )

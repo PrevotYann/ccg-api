@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends
-from sqlalchemy import or_, and_, func
+from sqlalchemy import desc, or_, and_, func
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -132,7 +132,7 @@ def get_random_yugioh_cards(limit: int, db: Session = Depends(get_db)):
 def get_latest_yugioh_cards(limit: int, db: Session = Depends(get_db)):
     return (
         db.query(CardYuGiOh)
-        .order_by(CardYuGiOh.id)
+        .order_by(desc(CardYuGiOh.id))
         .limit(limit)
         .all()
     )

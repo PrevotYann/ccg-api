@@ -130,6 +130,21 @@ class CardFFTCG(Base):
     cardset_id = Column(Integer, nullable=False)
 
 
+class CardNarutoKayou(Base):
+    __tablename__ = "cards_narutokayou"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    cardset_id = Column(Integer, nullable=False)
+    name = Column(Text, nullable=False)
+    code = Column(Text, nullable=False)
+    extension = Column(Text, nullable=False)
+    image = Column(Text)
+    attack = Column(String(50))
+    defense = Column(String(50))
+    chakra = Column(String(50))
+    attack = Column(Text)
+
+
 class Item(Base):
     __tablename__ = "items"
 
