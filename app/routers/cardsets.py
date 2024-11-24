@@ -60,12 +60,12 @@ def get_pokemon_cardset_by_language(language: str, db: Session = Depends(get_db)
     )
 
 
-@router.get("/narutokayou/all", tags=["cardsets"])
+@router.get("/naruto-kayou/all", tags=["cardsets"])
 def get_pokemon_cardsets(db: Session = Depends(get_db)):
     return db.query(Cardset).filter(Cardset.gameId == 4).all()
 
 
-@router.get("/narutokayou/all/language/{language}", tags=["cardsets"])
+@router.get("/naruto-kayou/all/language/{language}", tags=["cardsets"])
 def get_pokemon_cardset_by_language(language: str, db: Session = Depends(get_db)):
     return (
         db.query(Cardset)
@@ -89,6 +89,6 @@ def get_fftcg_cards_per_cardset_id(id: int, db: Session = Depends(get_db)):
     return db.query(CardFFTCG).filter(CardFFTCG.cardset_id == id).all()
 
 
-@router.get("/narutokayou/id/{id}/cards", tags=["cardsets"])
+@router.get("/naruto-kayou/id/{id}/cards", tags=["cardsets"])
 def get_naruto_kayou_cards_per_cardset_id(id: int, db: Session = Depends(get_db)):
     return db.query(CardNarutoKayou).filter(CardNarutoKayou.cardset_id == id).all()
