@@ -471,40 +471,37 @@ def query_items_with_dynamic_join(username: str, db: Session = Depends(get_db)):
     for item, user_item, item_price in user_items:
         table_class = get_class_by_tablename(item.source_table)
         if table_class is not None:
-            source_item = (
-                db.query(table_class).filter(table_class.id == item.specific_id).first()
-            )
-            if source_item:
-                # Create a dictionary that combines item, user_item, and source_item details
-                item_details = {
-                    "user_item_id": user_item.id,
-                    "item_id": item.id,
-                    "source_table": item.source_table,
-                    "specific_id": item.specific_id,
-                    "source_item_details": source_item,  # Assuming this is serializable; otherwise, customize serialization
-                    "user_item_details": {
-                        "quantity": user_item.quantity,
-                        "condition": user_item.condition,
-                        "added_date": user_item.added_date.isoformat(),
-                        "extras": user_item.extras,
-                        "is_first_edition": user_item.is_first_edition,
-                    },
-                    "prices":
-                        {
-                            "low": item_price.ebay_lowest,
-                            "high": item_price.ebay_highest,
-                            "mean": item_price.ebay_mean,
-                            "median": item_price.ebay_median,
-                            "currency": item_price.ebay_currency
-                        } if item_price is not None else {
-                            "low": None,
-                            "high": None,
-                            "mean": None,
-                            "median": None,
-                            "currency": None
-                        }
-                }
-                results.append(item_details)
+            # if source_item:
+            # Create a dictionary that combines item, user_item, and source_item details
+            item_details = {
+                "user_item_id": user_item.id,
+                "item_id": item.id,
+                "source_table": item.source_table,
+                "specific_id": item.specific_id,
+                # "source_item_details": source_item,  # Assuming this is serializable; otherwise, customize serialization
+                "user_item_details": {
+                    "quantity": user_item.quantity,
+                    "condition": user_item.condition,
+                    "added_date": user_item.added_date.isoformat(),
+                    "extras": user_item.extras,
+                    "is_first_edition": user_item.is_first_edition,
+                },
+                "prices":
+                    {
+                        "low": item_price.ebay_lowest,
+                        "high": item_price.ebay_highest,
+                        "mean": item_price.ebay_mean,
+                        "median": item_price.ebay_median,
+                        "currency": item_price.ebay_currency
+                    } if item_price is not None else {
+                        "low": None,
+                        "high": None,
+                        "mean": None,
+                        "median": None,
+                        "currency": None
+                    }
+            }
+            results.append(item_details)
 
     return results
 
@@ -596,6 +593,94 @@ def query_items_with_dynamic_join(
         "total_items": total_items,
         "items": results
     }
+
+
+@router.get("/user/v3/{username}", tags=["items"])
+def query_items_with_dynamic_join(username: str, db: Session = Depends(get_db)):
+    # Retrieve user
+    user = db.query(User.id).filter(User.username == username).one_or_none()
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Prepare dynamic joins for source_table
+    from sqlalchemy.sql import literal
+
+    source_tables = {
+        "cards_pokemon": CardPokemon,
+        "cards_yugioh": CardYuGiOh,
+        # Add other source tables here
+    }
+
+    union_queries = []
+    for table_name, table_class in source_tables.items():
+        subquery = (
+            db.query(
+                UserItem.id.label("user_item_id"),
+                Item.id.label("item_id"),
+                literal(table_name).label("source_table"),
+                Item.specific_id.label("specific_id"),
+                table_class.name.label("item_name"),  # Fetch name directly
+                UserItem.quantity.label("quantity"),
+                UserItem.condition.label("condition"),
+                UserItem.added_date.label("added_date"),
+                UserItem.extras.label("extras"),
+                UserItem.is_first_edition.label("is_first_edition"),
+                ItemPrice.ebay_lowest.label("low"),
+                ItemPrice.ebay_highest.label("high"),
+                ItemPrice.ebay_mean.label("mean"),
+                ItemPrice.ebay_median.label("median"),
+                ItemPrice.ebay_currency.label("currency"),
+            )
+            .select_from(UserItem)
+            .join(Item, Item.id == UserItem.item_id)
+            .outerjoin(
+                ItemPrice,
+                and_(
+                    UserItem.item_id == ItemPrice.item_id,
+                    or_(
+                        ItemPrice.id == None,
+                        and_(
+                            UserItem.condition == ItemPrice.condition,
+                            UserItem.is_first_edition == ItemPrice.is_first_edition,
+                        ),
+                    ),
+                ),
+            )
+            .join(table_class, table_class.id == Item.specific_id)
+            .filter(UserItem.user_id == user.id, Item.source_table == table_name)
+        )
+        union_queries.append(subquery)
+
+    # Combine all subqueries into one
+    final_query = union_queries[0].union_all(*union_queries[1:])
+    results = db.execute(final_query).fetchall()
+    
+    # Construct results
+    return [
+        {
+            "user_item_id": row[0],  # Access by index
+            "item_id": row[1],
+            "source_table": row[2],
+            "specific_id": row[3],
+            "item_name": row[4],
+            "user_item_details": {
+                "quantity": row[5],
+                "condition": row[6],
+                "added_date": row[7].isoformat(),
+                "extras": row[8],
+                "is_first_edition": row[9],
+            },
+            "prices": {
+                "low": row[10],
+                "high": row[11],
+                "mean": row[12],
+                "median": row[13],
+                "currency": row[14],
+            },
+        }
+        for row in results
+    ]
+
 
 
 @router.get("/user/{username}/collection/prices", tags=["items"])
