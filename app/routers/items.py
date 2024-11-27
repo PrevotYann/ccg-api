@@ -613,13 +613,30 @@ def query_items_with_dynamic_join(username: str, db: Session = Depends(get_db)):
 
     union_queries = []
     for table_name, table_class in source_tables.items():
+        if table_name == "cards_pokemon":
+            extra_fields = [
+                table_class.language.label("language"),
+                table_class.tcgdex_id.label("code"),  # Renamed for consistency
+            ]
+        elif table_name == "cards_yugioh":
+            extra_fields = [
+                table_class.language.label("language"),
+                table_class.set_number.label("code"),  # Renamed for consistency
+            ]
+        else:  # Other source tables
+            extra_fields = [
+                table_class.language.label("language"),
+                table_class.code.label("code"),
+            ]
+
         subquery = (
             db.query(
                 UserItem.id.label("user_item_id"),
                 Item.id.label("item_id"),
                 literal(table_name).label("source_table"),
                 Item.specific_id.label("specific_id"),
-                table_class.name.label("item_name"),  # Fetch name directly
+                table_class.name.label("item_name"),
+                *extra_fields,  # Include dynamic fields
                 UserItem.quantity.label("quantity"),
                 UserItem.condition.label("condition"),
                 UserItem.added_date.label("added_date"),
@@ -658,29 +675,30 @@ def query_items_with_dynamic_join(username: str, db: Session = Depends(get_db)):
     # Construct results
     return [
         {
-            "user_item_id": row[0],  # Access by index
+            "user_item_id": row[0],
             "item_id": row[1],
             "source_table": row[2],
             "specific_id": row[3],
             "item_name": row[4],
+            "language": row[5],
+            "code": row[6],  # Dynamically adjusted based on source_table
             "user_item_details": {
-                "quantity": row[5],
-                "condition": row[6],
-                "added_date": row[7].isoformat(),
-                "extras": row[8],
-                "is_first_edition": row[9],
+                "quantity": row[7],
+                "condition": row[8],
+                "added_date": row[9].isoformat(),
+                "extras": row[10],
+                "is_first_edition": row[11],
             },
             "prices": {
-                "low": row[10],
-                "high": row[11],
-                "mean": row[12],
-                "median": row[13],
-                "currency": row[14],
+                "low": row[12],
+                "high": row[13],
+                "mean": row[14],
+                "median": row[15],
+                "currency": row[16],
             },
         }
         for row in results
     ]
-
 
 
 @router.get("/user/{username}/collection/prices", tags=["items"])
