@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import CardPokemon, CardYuGiOh, Cardset, Item, ItemPrice, User, UserItem, get_class_by_tablename
 from app.routers.cardmarket import cardmarket_get_from_price
-from app.routers.ebay import ebay_search_query_france_prices, ebay_search_query_us_prices, ebay_selling_items, ebay_selling_items_fr, ebay_sold_items, ebay_sold_items_fr
+from app.routers.ebay import ebay_sold_items_unique_string, ebay_selling_items, ebay_selling_items_fr, ebay_sold_items, ebay_sold_items_fr
 from app.schema import Item as ItemSchema, UserItem as UserItemSchema, UserItemInput, UserItemsInput
 
 import requests
@@ -162,6 +162,7 @@ def add_multiple_items_to_user_collection(
     return {"message": "Items added successfully"}
 
 @router.post("/table/{table_name}/item/{specific_id}/condition/{condition}/first/{first_edition}/extras/{extras}/ebay/price", tags=["items"])
+@router.post("/table/{table_name}/item/{specific_id}/condition/{condition}/first/{first_edition}/extras/{extras}/ebay/price", tags=["items"])
 def ebay_price_for_item(
     table_name: str,
     specific_id: int,
@@ -190,65 +191,58 @@ def ebay_price_for_item(
             return
         language = card.language
         if language == "fr":
-            prices = ebay_search_query_france_prices(
-                query=set_number + " " + conditions[condition] + (" 1st" if first_edition else "") + (" " + rarity if any(keyword in rarity.lower() for keyword in ["collector", "ghost", "ultimate"]) else "")
+            prices = ebay_sold_items_unique_string(
+                query=set_number + " " + conditions[condition] + (" 1st" if first_edition else "") +
+                      (" " + rarity if any(keyword in rarity.lower() for keyword in ["collector", "ghost", "ultimate"]) else ""),
+                lang=language
             )
             if prices is None:
-                prices = ebay_search_query_france_prices(
-                    query=set_number #+ " " + conditions[condition] + (" 1st" if first_edition else "")
+                prices = ebay_sold_items_unique_string(
+                    query=set_number,
+                    lang=language
                 )
-                # if prices is None:
-                #     prices = ebay_search_query_france_prices(
-                #         query=set_number + " " + rarity
-                #     )
             currency = "EURO"
         else:
-            prices = ebay_search_query_us_prices(
-                query=set_number + " " + conditions[condition] + (" 1st" if first_edition else "") + (" " + rarity if any(keyword in rarity.lower() for keyword in ["collector", "ghost", "ultimate"]) else "")
+            prices = ebay_sold_items_unique_string(
+                query=set_number + " " + conditions[condition] + (" 1st" if first_edition else "") +
+                      (" " + rarity if any(keyword in rarity.lower() for keyword in ["collector", "ghost", "ultimate"]) else ""),
+                lang=language
             )
             if prices is None:
-                prices = ebay_search_query_us_prices(
-                    query=set_number
+                prices = ebay_sold_items_unique_string(
+                    query=set_number,
+                    lang=language
                 )
-                # if prices is None:
-                #     prices = ebay_search_query_us_prices(
-                #     query=set_number + " " + rarity
-                # )
             currency = "DOLLAR"
     
     elif table_name == "cards_pokemon":
         card = db.query(CardPokemon).filter(CardPokemon.id == specific_id).one()
 
         name = card.name
-        #rarity = card.rarity
         card_number = str(card.local_id)
         language = card.language
         extra_in_query = (" " + extras if extras not in [None, "null"] else "")
         if language == "fr":
-            prices = ebay_search_query_france_prices(
-                query=name + " " + card_number + " " + conditions[condition] + extra_in_query + (" 1st" if first_edition else "") #+ " " + rarity 
+            prices = ebay_sold_items_unique_string(
+                query=name + " " + card_number + " " + conditions[condition] + extra_in_query + (" 1st" if first_edition else ""),
+                lang=language
             )
             if prices is None:
-                prices = ebay_search_query_france_prices(
-                    query=name + " " + card_number + extra_in_query + (" 1st" if first_edition else "") #+ rarity 
+                prices = ebay_sold_items_unique_string(
+                    query=name + " " + card_number + extra_in_query + (" 1st" if first_edition else ""),
+                    lang=language
                 )
-                # if prices is None:
-                #     prices = ebay_search_query_france_prices(
-                #         query=name + " " + card_number
-                #     )
             currency = "EURO"
         else:
-            prices = ebay_search_query_us_prices(
-                query=name + " " + card_number + " " + conditions[condition] + extra_in_query + (" 1st" if first_edition else "") #+ " " + rarity + (" 1st" if first_edition else "")
+            prices = ebay_sold_items_unique_string(
+                query=name + " " + card_number + " " + conditions[condition] + extra_in_query + (" 1st" if first_edition else ""),
+                lang=language
             )
             if prices is None:
-                prices = ebay_search_query_us_prices(
-                    query=name + " " + card_number + extra_in_query + (" 1st" if first_edition else "")#+ " " + rarity 
+                prices = ebay_sold_items_unique_string(
+                    query=name + " " + card_number + extra_in_query + (" 1st" if first_edition else ""),
+                    lang=language
                 )
-                # if prices is None:
-                #     prices = ebay_search_query_us_prices(
-                #         query=name + " " + card_number
-                #     )
             currency = "DOLLAR"
 
     if prices is None:
@@ -268,29 +262,30 @@ def ebay_price_for_item(
     
     if item_price is None:
         item_price = ItemPrice(
-            item_id = item_to_look_for_price.id,
-            condition = condition,
-            ebay_currency = currency,
-            ebay_last_update = now,
-            ebay_highest = "%.2f" % prices["high"],
-            ebay_lowest = "%.2f" % prices["low"],
-            ebay_mean = "%.2f" % prices["mean"],
-            ebay_median = "%.2f" % prices["median"],
-            is_first_edition = first_edition
+            item_id=item_to_look_for_price.id,
+            condition=condition,
+            ebay_currency=currency,
+            ebay_last_update=now,
+            ebay_highest="%.2f" % prices["highest_price"],
+            ebay_lowest="%.2f" % prices["lowest_price"],
+            ebay_mean="%.2f" % prices["mean_price"],
+            ebay_median="%.2f" % prices["median_price"],
+            is_first_edition=first_edition
         )
         db.add(item_price)
     else:
         item_price.ebay_last_update = now
-        item_price.ebay_highest = "%.2f" % prices["high"]
-        item_price.ebay_lowest = "%.2f" % prices["low"]
-        item_price.ebay_mean = "%.2f" % prices["mean"]
-        item_price.ebay_median = "%.2f" % prices["median"]
+        item_price.ebay_highest = "%.2f" % prices["highest_price"]
+        item_price.ebay_lowest = "%.2f" % prices["lowest_price"]
+        item_price.ebay_mean = "%.2f" % prices["mean_price"]
+        item_price.ebay_median = "%.2f" % prices["median_price"]
         item_price.is_first_edition = first_edition
         db.flush()
     
     db.commit()
 
     return prices
+
 
 
 @router.post("/table/{table_name}/item/{specific_id}/condition/{condition}/first/{first_edition}/extras/{extras}/ebay/sold_prices", tags=["items"])

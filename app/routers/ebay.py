@@ -451,7 +451,7 @@ def ebay_selling_items_fr(item: str):
 
 
 @router.post("/unique-parse/sold", tags=["ebay"])
-def ebay_sold_items_unique_string(query: str):
+def ebay_sold_items_unique_string(query: str, lang: str):
     # List of excluded words (must be in lower case for case insensitive comparison)
     excluded_words = [
         "shop on ebay", "replica", "réplica", "fake", "vitrine", "présentation", 
@@ -459,8 +459,10 @@ def ebay_sold_items_unique_string(query: str):
         "illustration holder", "artwork", "display case", "playmat", "plush"
     ]
 
+    lang_extension = "fr" if lang == "fr" else "com"
+
     # URL of the eBay search page
-    url = f"https://www.ebay.com/sch/i.html?_from=R40&_nkw={query}&_sacat=1&rt=nc&LH_Sold=1&LH_Complete=1"
+    url = f"https://www.ebay.{lang_extension}/sch/i.html?_from=R40&_nkw={query}&_sacat=1&rt=nc&LH_Sold=1&LH_Complete=1"
     
     # Send a request to the URL
     response = requests.get(url)
