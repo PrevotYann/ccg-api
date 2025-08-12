@@ -164,7 +164,7 @@ class UserItem(Base):
     condition = Column(
         String(100), nullable=True
     )  # cards : POOR, LIGHT_PLAYED, GOOD, EXCELLENT, NEAR_MINT, MINT ; others :POOR, GOOD, EXCELLENT, SEALED
-    extras = Column(Text, nullable=True)
+    extras = Column(JSON, nullable=True)
     is_first_edition = Column(Boolean, nullable=True)
 
 
