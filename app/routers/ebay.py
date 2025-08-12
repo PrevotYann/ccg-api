@@ -451,7 +451,7 @@ def ebay_selling_items_fr(item: str):
 
 
 @router.post("/unique-parse/sold", tags=["ebay"])
-def ebay_sold_items_unique_string(query: str, lang: str):
+def ebay_sold_items_unique_string(query: str, lang: str, regex_to_retrieve: list[str]):
     # List of excluded words (must be in lower case for case insensitive comparison)
     excluded_words = [
         "shop on ebay", "replica", "réplica", "fake", "vitrine", "présentation", 
@@ -492,29 +492,41 @@ def ebay_sold_items_unique_string(query: str, lang: str):
                     price_unit = price_text[0]  # Assuming the unit is the first character
 
                     # Check if any excluded word is in the title
-                    if not any(word in title_text for word in excluded_words) and (query.split(" ")[0].lower() in title_text):
+                    if not any(word in title_text for word in excluded_words) and any(regex in title_text for regex in regex_to_retrieve):
                         valid_prices.append(price_value)
                 else:
                     continue
 
-        # Remove weirdly low amounts (e.g., below 25th percentile)
-        if len(valid_prices) > 10:
-            threshold = statistics.quantiles(valid_prices, n=10)[0]  # 25th percentile
-            valid_prices = [price for price in valid_prices if price >= threshold]
-        if len(valid_prices) > 0:
-            # Calculate mean and median prices
-            mean_price = statistics.mean(valid_prices) if valid_prices else 0
-            median_price = statistics.median(valid_prices) if valid_prices else 0
-            lowest_price = min([p for p in valid_prices])
-            highest_price = max([p for p in valid_prices])
+        # Remove weirdly low amounts
+        if len(valid_prices) > 4:  # Needs enough data
+            q1, q3 = statistics.quantiles(valid_prices, n=4)[0], statistics.quantiles(valid_prices, n=4)[2]
 
+            lower_bound = q1 * 0.85
+            upper_bound = q3 * 1.15
+
+            filtered_prices = [p for p in valid_prices if lower_bound <= p <= upper_bound]
+
+            mean_price = round(statistics.mean(filtered_prices),2)
+            median_price = round(statistics.median(filtered_prices),2)
+            lowest_price = min(filtered_prices)
+            highest_price = max(filtered_prices)
+
+        else:
+            if len(valid_prices) > 0:
+                # Calculate mean and median prices
+                mean_price = statistics.mean(valid_prices) if valid_prices else 0
+                median_price = statistics.median(valid_prices) if valid_prices else 0
+                lowest_price = min([p for p in valid_prices])
+                highest_price = max([p for p in valid_prices])
+
+        if len(valid_prices) > 0:
             return {
-                "mean_price": round(mean_price,2),
-                "median_price": round(median_price,2),
+                "mean_price": mean_price,
+                "median_price": median_price,
                 "lowest_price": lowest_price,
                 "highest_price": highest_price,
                 "price_unit": price_unit,
-                "prices": [f"{price_unit}{price:.2f}" for price in valid_prices]
+                "prices": [f"{price_unit}{price:.2f}" for price in filtered_prices]
             }
         else:
             return None
@@ -576,8 +588,8 @@ def ebay_selling_items_unique_string(query: str, lang: str, regex_to_retrieve: l
         if len(valid_prices) > 4:  # Needs enough data
             q1, q3 = statistics.quantiles(valid_prices, n=4)[0], statistics.quantiles(valid_prices, n=4)[2]
 
-            lower_bound = q1
-            upper_bound = q3 * 1.05
+            lower_bound = q1 * 0.85
+            upper_bound = q3 * 1.15
 
             filtered_prices = [p for p in valid_prices if lower_bound <= p <= upper_bound]
 
