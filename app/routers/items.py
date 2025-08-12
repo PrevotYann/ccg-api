@@ -364,13 +364,13 @@ def ebay_price_for_item(
             prices = ebay_sold_items_unique_string(
                 query=name + " " + card_number + " " + conditions[condition] + extra_in_query + (" 1st" if first_edition else ""),
                 lang=language,
-                regex_to_retrieve=[card.name, card.set_number]
+                regex_to_retrieve=[name, card_number]
             )
             if prices is None:
                 prices = ebay_sold_items_unique_string(
                     query=name + " " + card_number + extra_in_query + (" 1st" if first_edition else ""),
                     lang=language,
-                regex_to_retrieve=[card.name, card.set_number]
+                regex_to_retrieve=[name, card_number]
                 )
             currency = "EURO"
         else:
@@ -378,13 +378,13 @@ def ebay_price_for_item(
             prices = ebay_sold_items_unique_string(
                 query=name + " " + card_number + " " + conditions[condition] + extra_in_query + (" 1st" if first_edition else ""),
                 lang=language,
-                regex_to_retrieve=[card.name, card.set_number]
+                regex_to_retrieve=[name, card_number]
             )
             if prices is None:
                 prices = ebay_sold_items_unique_string(
                     query=name + " " + card_number + extra_in_query + (" 1st" if first_edition else ""),
                     lang=language,
-                regex_to_retrieve=[card.name, card.set_number]
+                regex_to_retrieve=[name, card_number]
                 )
             currency = "DOLLAR"
 
