@@ -522,3 +522,76 @@ def ebay_sold_items_unique_string(query: str, lang: str):
         print(f"Failed to retrieve the page. Status code: {response.status_code}")
         return None
 
+
+@router.post("/unique-parse/selling", tags=["ebay"])
+def ebay_selling_items_unique_string(query: str, lang: str):
+    # List of excluded words (must be in lower case for case insensitive comparison)
+    excluded_words = [
+        "shop on ebay", "replica", "réplica", "fake", "vitrine", "présentation", 
+        "fan art", "metal card", "sleeve", "alt arts", "alt art", 
+        "illustration holder", "artwork", "display case", "playmat", "plush"
+    ]
+
+    lang_extension = "fr" if lang == "fr" else "com"
+    
+    # URL of the eBay search page
+    url = f"https://www.ebay.{lang_extension}/sch/i.html?_from=R40&_nkw={query}&_sacat=0"
+    
+    # Send a request to the URL
+    response = requests.get(url)
+
+    # Check if the request was successful
+    if response.status_code == 200:
+        # Parse the response content
+        soup = BeautifulSoup(response.content, 'html.parser')
+
+        # Find all items
+        items = soup.find_all('div', class_='s-item__info')
+        
+        # List to store prices of valid items
+        valid_prices = []
+        price_unit = None
+
+        for item in items:
+            title = item.find('div', class_='s-item__title')
+            price = item.find('span', class_='s-item__price')
+
+            if title and price:
+                title_text = title.get_text().lower()  # Convert to lower case for case insensitive comparison
+                if "to" not in price.get_text() and "à" not in price.get_text():
+                    price_text = price.get_text()
+                    # Extract price value and unit
+                    price_value = float(price_text.replace('$', '').replace(',', ''))
+                    price_unit = price_text[0]  # Assuming the unit is the first character
+
+                    # Check if any excluded word is in the title
+                    if not any(word in title_text for word in excluded_words) and (query.split(" ")[0].lower() in title_text):
+                        valid_prices.append(price_value)
+                else:
+                    continue
+
+        # Remove weirdly low amounts (e.g., below 25th percentile)
+        if len(valid_prices) > 10:
+            threshold = statistics.quantiles(valid_prices, n=10)[0]  # 25th percentile
+            valid_prices = [price for price in valid_prices if price >= threshold]
+        if len(valid_prices) > 0:
+            # Calculate mean and median prices
+            mean_price = statistics.mean(valid_prices) if valid_prices else 0
+            median_price = statistics.median(valid_prices) if valid_prices else 0
+            lowest_price = min([p for p in valid_prices])
+            highest_price = max([p for p in valid_prices])
+
+            return {
+                "mean_price": round(mean_price,2),
+                "median_price": round(median_price,2),
+                "lowest_price": lowest_price,
+                "highest_price": highest_price,
+                "price_unit": price_unit,
+                "prices": [f"{price_unit}{price:.2f}" for price in valid_prices]
+            }
+        else:
+            return None
+    else:
+        print(f"Failed to retrieve the page. Status code: {response.status_code}")
+        return None
+
