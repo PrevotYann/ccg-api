@@ -462,11 +462,11 @@ def ebay_sold_items_unique_string(query: str, lang: str, regex_to_retrieve: list
         "jumbo card"
     ]
 
-    lang_extension = "fr" if lang == "fr" else "com"
+    lang_extension = "com" #"fr" if lang == "fr" else "com" - To this date, fr seems broken
 
     # URL of the eBay search page
     url = f"https://www.ebay.{lang_extension}/sch/i.html?_from=R40&_nkw={query}&_sacat=1&rt=nc&LH_Sold=1&LH_Complete=1"
-    
+
     # Send a request to the URL
     response = requests.get(url)
 
@@ -477,7 +477,6 @@ def ebay_sold_items_unique_string(query: str, lang: str, regex_to_retrieve: list
 
         # Find all items
         items = soup.find_all('div', class_='s-item__info')
-        
         # List to store prices of valid items
         valid_prices = []
         price_unit = None
@@ -550,7 +549,7 @@ def ebay_selling_items_unique_string(query: str, lang: str, regex_to_retrieve: l
         "jumbo card"
     ]
 
-    lang_extension = "fr" if lang == "fr" else "com"
+    lang_extension = "com" #"fr" if lang == "fr" else "com" - To this date, fr seems broken
 
     # URL of the eBay search page
     url = f"https://www.ebay.{lang_extension}/sch/i.html?_from=R40&_nkw={query}&_sacat=0"
@@ -573,7 +572,6 @@ def ebay_selling_items_unique_string(query: str, lang: str, regex_to_retrieve: l
         for item in items:
             title = item.find('div', class_='s-item__title')
             price = item.find('span', class_='s-item__price')
-
             if title and price:
                 title_text = title.get_text().lower()  # Convert to lower case for case insensitive comparison
                 if "to" not in price.get_text() and "à" not in price.get_text():
@@ -581,7 +579,6 @@ def ebay_selling_items_unique_string(query: str, lang: str, regex_to_retrieve: l
                     # Extract price value and unit
                     price_value = float(price_text.replace('$', '').replace(',', ''))
                     price_unit = price_text[0]  # Assuming the unit is the first character
-
                     # Check if any excluded word is in the title
                     if not any(word in title_text for word in excluded_words) and any(regex in title_text for regex in regex_to_retrieve):
                         valid_prices.append(price_value)
