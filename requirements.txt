@@ -14,3 +14,4 @@ browseapi
 numpy
 beautifulsoup4
 selenium
+cryptography

@@ -167,37 +167,6 @@ def ebay_search_query_USA_with_condition(query: str, condition: str):
         return responses[0].itemSummaries
 
 
-# @router.get("/search/sold/{item:path}", tags=["ebay"])
-# def ebay_sold_items_prices(item: str):
-#     import requests
-
-#     url = "https://ebay-average-selling-price.p.rapidapi.com/findCompletedItems"
-
-
-#     lower_exclude_keywords = ["replica", "réplica", "fake", "vitrine", "présentation", "fan art", "'metal card'", "sleeve", "alt arts", "alt art", "illustration holder", "artwork", "display case", "playmat", "plush"]
-#     upper_exclude_keywords = [k.upper() for k in lower_exclude_keywords]
-
-#     excluded_keywords = lower_exclude_keywords + upper_exclude_keywords
-
-#     payload = {
-#         "keywords": item,
-#         "excluded_keywords": " ".join(excluded_keywords),
-#         "category_id": "1",
-#         "max_search_results": "240",
-#         "site_id": "0",
-#         "remove_outliers": "true"
-#     }
-#     headers = {
-#         "x-rapidapi-key": "5d9343ae8emshb06aed9eda11f7bp1422b9jsnbaa14324cc03",
-#         "x-rapidapi-host": "ebay-average-selling-price.p.rapidapi.com",
-#         "Content-Type": "application/json"
-#     }
-
-#     response = requests.post(url, json=payload, headers=headers)
-
-#     return response.json()
-
-
 @router.post("/parse/sold", tags=["ebay"])
 def ebay_sold_items(item: str):
     excluded_words = {
@@ -479,38 +448,6 @@ def ebay_selling_items_fr(item: str):
     else:
         print(f"Failed to retrieve the page. Status code: {response.status_code}")
         return None
-
-
-
-# @router.get("/parse/sold/{item:path}", tags=["ebay"])
-# def ebay_sold_items(item: str):
-#     import requests
-
-#     url = "https://ebay-average-selling-price.p.rapidapi.com/findCompletedItems"
-
-
-#     lower_exclude_keywords = ["replica", "réplica", "fake", "vitrine", "présentation", "fan art", "'metal card'", "sleeve", "alt arts", "alt art", "illustration holder", "artwork", "display case", "playmat", "plush"]
-#     upper_exclude_keywords = [k.upper() for k in lower_exclude_keywords]
-
-#     excluded_keywords = lower_exclude_keywords + upper_exclude_keywords
-
-#     payload = {
-#         "keywords": item,
-#         "excluded_keywords": " ".join(excluded_keywords),
-#         "category_id": "1",
-#         "max_search_results": "240",
-#         "site_id": "0",
-#         "remove_outliers": "true"
-#     }
-#     headers = {
-#         "x-rapidapi-key": "5d9343ae8emshb06aed9eda11f7bp1422b9jsnbaa14324cc03",
-#         "x-rapidapi-host": "ebay-average-selling-price.p.rapidapi.com",
-#         "Content-Type": "application/json"
-#     }
-
-#     response = requests.post(url, json=payload, headers=headers)
-
-#     return response.json()
 
 
 @router.post("/unique-parse/sold", tags=["ebay"])

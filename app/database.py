@@ -4,10 +4,10 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
 
-database_username = os.environ.get('DATABASE_USERNAME', 'collecthor_clearlybee')
-database_password = os.environ.get('DATABASE_PASSWORD', '36ce5163b5b3b7d82ec578b256477eed7f01289e')
-database_url = os.environ.get('DATABASE_URL', 'wq1.h.filess.io')
-database_name = os.environ.get('DATABASE_NAME', 'collecthor_clearlybee')
+database_username = os.environ.get('COLLECTHOR_DATABASE_USERNAME', 'admin')
+database_password = os.environ.get('COLLECTHOR_DATABASE_PASSWORD', '@Danganronpa4719!')
+database_url = os.environ.get('COLLECTHOR_DATABASE_URL', '185.172.57.107')
+database_name = os.environ.get('COLLECTHOR_DATABASE_NAME', 'collecthor')
 
 print('DB URL:', database_url)
 print('DB:', database_name)
@@ -17,7 +17,7 @@ url_object = URL.create(
     username=database_username,
     password=database_password,
     host=database_url,
-    port=3305,
+    port=3306,
     database=database_name
 )
 
