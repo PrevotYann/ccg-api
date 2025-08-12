@@ -456,7 +456,9 @@ def ebay_sold_items_unique_string(query: str, lang: str, regex_to_retrieve: list
     excluded_words = [
         "shop on ebay", "replica", "réplica", "fake", "vitrine", "présentation", 
         "fan art", "metal card", "sleeve", "alt arts", "alt art", 
-        "illustration holder", "artwork", "display case", "playmat", "plush"
+        "illustration holder", "artwork", "display case", "playmat", "plush",
+        "display card", "cust0m", "rainbow rare", "doujin card", "blanket",
+        "proxy","🔥","💎", "gold metal", "xl size"
     ]
 
     lang_extension = "fr" if lang == "fr" else "com"
