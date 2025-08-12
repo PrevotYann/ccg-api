@@ -567,7 +567,7 @@ def ebay_selling_items_unique_string(query: str, lang: str, regex_to_retrieve: l
                     price_unit = price_text[0]  # Assuming the unit is the first character
 
                     # Check if any excluded word is in the title
-                    if not any(word in title_text for word in excluded_words) and (query.split(" ")[0].lower() in title_text) and any(regex in title_text for regex in regex_to_retrieve):
+                    if not any(word in title_text for word in excluded_words) and any(regex in title_text for regex in regex_to_retrieve):
                         valid_prices.append(price_value)
                 else:
                     continue
@@ -576,8 +576,8 @@ def ebay_selling_items_unique_string(query: str, lang: str, regex_to_retrieve: l
         if len(valid_prices) > 4:  # Needs enough data
             q1, q3 = statistics.quantiles(valid_prices, n=4)[0], statistics.quantiles(valid_prices, n=4)[2]
 
-            lower_bound = q1 * 0.9
-            upper_bound = q3 * 0.9
+            lower_bound = q1
+            upper_bound = q3 * 1.05
 
             filtered_prices = [p for p in valid_prices if lower_bound <= p <= upper_bound]
 
