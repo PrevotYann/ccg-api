@@ -504,8 +504,8 @@ def ebay_sold_items_unique_string(query: str, lang: str, regex_to_retrieve: list
         if len(valid_prices) > 4:  # Needs enough data
             q1, q3 = statistics.quantiles(valid_prices, n=4)[0], statistics.quantiles(valid_prices, n=4)[2]
             
-            lower_bound = q1 * 0.85
-            upper_bound = q3 * 1.15 
+            lower_bound = q1 * 0.90
+            upper_bound = q3 * 1.05
 
             filtered_prices = [p for p in valid_prices if lower_bound <= p <= upper_bound]
 
@@ -592,8 +592,8 @@ def ebay_selling_items_unique_string(query: str, lang: str, regex_to_retrieve: l
         if len(valid_prices) > 4:  # Needs enough data
             q1, q3 = statistics.quantiles(valid_prices, n=4)[0], statistics.quantiles(valid_prices, n=4)[2]
             
-            lower_bound = q1 * 0.85
-            upper_bound = q3 * 1.15
+            lower_bound = q1 * 0.90
+            upper_bound = q3 * 1.05
 
             filtered_prices = [p for p in valid_prices if lower_bound <= p <= upper_bound]
 
