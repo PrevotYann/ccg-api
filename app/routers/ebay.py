@@ -458,7 +458,8 @@ def ebay_sold_items_unique_string(query: str, lang: str, regex_to_retrieve: list
         "fan art", "metal card", "sleeve", "alt arts", "alt art", 
         "illustration holder", "artwork", "display case", "playmat", "plush",
         "display card", "cust0m", "rainbow rare", "doujin card", "blanket",
-        "proxy","🔥","💎", "gold metal", "xl size"
+        "proxy","🔥","💎", "gold metal", "xl size", "fan made", "custom fan",
+        "jumbo card"
     ]
 
     lang_extension = "fr" if lang == "fr" else "com"
@@ -501,10 +502,10 @@ def ebay_sold_items_unique_string(query: str, lang: str, regex_to_retrieve: list
 
         # Remove weirdly low amounts
         if len(valid_prices) > 4:  # Needs enough data
-            q1, q3 = statistics.quantiles(valid_prices, n=4)[0], statistics.quantiles(valid_prices, n=4)[2]
-
-            lower_bound = q1 * 0.85
-            upper_bound = q3 * 1.15
+            q1, q3, q4 = statistics.quantiles(valid_prices, n=4)[0], statistics.quantiles(valid_prices, n=4)[2], max(valid_prices)
+            
+            lower_bound = q1 * 1.01
+            upper_bound = q3 * 1.20 if q3 * 1.25 < q4 * 0.95 else q3 * 1.15
 
             filtered_prices = [p for p in valid_prices if lower_bound <= p <= upper_bound]
 
@@ -545,7 +546,8 @@ def ebay_selling_items_unique_string(query: str, lang: str, regex_to_retrieve: l
         "fan art", "metal card", "sleeve", "alt arts", "alt art", 
         "illustration holder", "artwork", "display case", "playmat", "plush",
         "display card", "cust0m", "rainbow rare", "doujin card", "blanket",
-        "proxy","🔥","💎", "gold metal", "xl size"
+        "proxy","🔥","💎", "gold metal", "xl size", "fan made", "custom fan",
+        "jumbo card"
     ]
 
     lang_extension = "fr" if lang == "fr" else "com"
@@ -588,10 +590,10 @@ def ebay_selling_items_unique_string(query: str, lang: str, regex_to_retrieve: l
 
         # Remove weirdly low amounts
         if len(valid_prices) > 4:  # Needs enough data
-            q1, q3 = statistics.quantiles(valid_prices, n=4)[0], statistics.quantiles(valid_prices, n=4)[2]
-
-            lower_bound = q1 * 0.85
-            upper_bound = q3 * 1.15
+            q1, q3, q4 = statistics.quantiles(valid_prices, n=4)[0], statistics.quantiles(valid_prices, n=4)[2], max(valid_prices)
+            
+            lower_bound = q1 * 1.01
+            upper_bound = q3 * 1.20 if q3 * 1.25 < q4 * 0.95 else q3 * 1.15
 
             filtered_prices = [p for p in valid_prices if lower_bound <= p <= upper_bound]
 
