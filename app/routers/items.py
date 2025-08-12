@@ -9,6 +9,7 @@ from app.routers.cardmarket import cardmarket_get_from_price
 from app.routers.ebay import ebay_search_query_france_prices, ebay_search_query_us_prices, ebay_selling_items, ebay_selling_items_fr, ebay_sold_items, ebay_sold_items_fr
 from app.schema import Item as ItemSchema, UserItem as UserItemSchema, UserItemInput, UserItemsInput
 
+import requests
 
 router = APIRouter(prefix="/items")
 
@@ -23,7 +24,24 @@ conditions = {
     "mint": "MINT"
 }
 
-DOLLAR_TO_EURO = 0.92
+def get_usd_to_eur_rate_open_er():
+    url = "https://open.er-api.com/v6/latest/USD"
+    response = requests.get(url)
+    data = response.json()
+    if data['result'] == 'success':
+        return data['rates']['EUR']
+    else:
+        return None
+
+
+def get_usd_to_eur_rate_frankfurter():
+    url = "https://api.frankfurter.app/latest?from=USD&to=EUR"
+    response = requests.get(url)
+    data = response.json()
+    return data['rates']['EUR']
+
+
+DOLLAR_TO_EURO = get_usd_to_eur_rate_open_er() if get_usd_to_eur_rate_open_er() is not None else get_usd_to_eur_rate_frankfurter()
 
 #################################
 #################################
