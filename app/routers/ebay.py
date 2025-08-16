@@ -167,7 +167,7 @@ def ebay_search_query_USA_with_condition(query: str, condition: str):
         return responses[0].itemSummaries
 
 
-@router.post("/parse/sold", tags=["ebay"])
+"""@router.post("/parse/sold", tags=["ebay"])
 def ebay_sold_items(item: str):
     excluded_words = {
         "shop on ebay", "replica", "réplica", "fake", "vitrine", "présentation",
@@ -447,94 +447,79 @@ def ebay_selling_items_fr(item: str):
             return None
     else:
         print(f"Failed to retrieve the page. Status code: {response.status_code}")
-        return None
+        return None"""
 
 
 @router.post("/unique-parse/sold", tags=["ebay"])
 def ebay_sold_items_unique_string(query: str, lang: str, regex_to_retrieve: list[str]):
-    # List of excluded words (must be in lower case for case insensitive comparison)
     excluded_words = [
         "shop on ebay", "replica", "réplica", "fake", "vitrine", "présentation", 
         "fan art", "metal card", "sleeve", "alt arts", "alt art", 
         "illustration holder", "artwork", "display case", "playmat", "plush",
         "display card", "cust0m", "rainbow rare", "doujin card", "blanket",
         "proxy","🔥","💎", "gold metal", "xl size", "fan made", "custom fan",
-        "jumbo card"
+        "jumbo card", "for kids", "rainbow secret rare"
     ]
 
-    lang_extension = "com" #"fr" if lang == "fr" else "com" - To this date, fr seems broken
+    lang_extension = "com"  # "fr" if lang == "fr" else "com"
 
-    # URL of the eBay search page
     url = f"https://www.ebay.{lang_extension}/sch/i.html?_from=R40&_nkw={query}&_sacat=1&rt=nc&LH_Sold=1&LH_Complete=1"
-
-    # Send a request to the URL
     response = requests.get(url)
 
-    # Check if the request was successful
-    if response.status_code == 200:
-        # Parse the response content
-        soup = BeautifulSoup(response.content, 'html.parser')
-
-        # Find all items
-        items = soup.find_all('div', class_='s-item__info')
-        # List to store prices of valid items
-        valid_prices = []
-        price_unit = None
-
-        for item in items:
-            title = item.find('div', class_='s-item__title')
-            price = item.find('span', class_='s-item__price')
-
-            if title and price:
-                title_text = title.get_text().lower()  # Convert to lower case for case insensitive comparison
-                if "to" not in price.get_text() and "à" not in price.get_text():
-                    price_text = price.get_text()
-                    # Extract price value and unit
-                    price_value = float(price_text.replace('$', '').replace(',', ''))
-                    price_unit = price_text[0]  # Assuming the unit is the first character
-
-                    # Check if any excluded word is in the title
-                    if not any(word in title_text for word in excluded_words) and any(regex in title_text for regex in regex_to_retrieve):
-                        valid_prices.append(price_value)
-                else:
-                    continue
-
-        # Remove weirdly low amounts
-        if len(valid_prices) > 4:  # Needs enough data
-            q1, q3 = statistics.quantiles(valid_prices, n=4)[0], statistics.quantiles(valid_prices, n=4)[2]
-            
-            lower_bound = q1 * 0.90
-            upper_bound = q3 * 1.05
-
-            filtered_prices = [p for p in valid_prices if lower_bound <= p <= upper_bound]
-
-            mean_price = round(statistics.mean(filtered_prices),2)
-            median_price = round(statistics.median(filtered_prices),2)
-            lowest_price = min(filtered_prices)
-            highest_price = max(filtered_prices)
-
-        else:
-            if len(valid_prices) > 0:
-                # Calculate mean and median prices
-                mean_price = statistics.mean(valid_prices) if valid_prices else 0
-                median_price = statistics.median(valid_prices) if valid_prices else 0
-                lowest_price = min([p for p in valid_prices])
-                highest_price = max([p for p in valid_prices])
-
-        if len(valid_prices) > 0:
-            return {
-                "mean_price": mean_price,
-                "median_price": median_price,
-                "lowest_price": lowest_price,
-                "highest_price": highest_price,
-                "price_unit": price_unit,
-                "prices": [f"{price_unit}{price:.2f}" for price in filtered_prices]
-            }
-        else:
-            return None
-    else:
+    if response.status_code != 200:
         print(f"Failed to retrieve the page. Status code: {response.status_code}")
         return None
+
+    soup = BeautifulSoup(response.content, 'html.parser')
+    items = soup.find_all('div', class_='s-item__info')
+
+    valid_prices = []
+    price_unit = None
+
+    for item in items:
+        title = item.find('div', class_='s-item__title')
+        price = item.find('span', class_='s-item__price')
+
+        if title and price:
+            title_text = title.get_text().lower()
+            price_text = price.get_text()
+
+            if "to" in price_text or "à" in price_text:
+                continue
+
+            try:
+                price_value = float(price_text.replace('$', '').replace(',', '').replace('€','').strip())
+            except ValueError:
+                continue
+
+            price_unit = price_text[0]  # e.g. "$" or "€"
+
+            if not any(word in title_text for word in excluded_words) and any(regex in title_text for regex in regex_to_retrieve):
+                print(title_text + " - " + price_text)
+                valid_prices.append(price_value)
+
+    if not valid_prices:
+        return None
+
+    # Apply MAD filtering
+    filtered_prices = filter_prices_mad(valid_prices, threshold=2.5)
+
+    if not filtered_prices:
+        return None
+
+    mean_price = round(statistics.mean(filtered_prices), 2)
+    median_price = round(statistics.median(filtered_prices), 2)
+    lowest_price = min(filtered_prices)
+    highest_price = max(filtered_prices)
+
+    return {
+        "mean_price": mean_price,
+        "median_price": median_price,
+        "lowest_price": lowest_price,
+        "highest_price": highest_price,
+        "price_unit": price_unit,
+        "prices": [f"{price_unit}{price:.2f}" for price in filtered_prices]
+    }
 
 
 @router.post("/unique-parse/selling", tags=["ebay"])
@@ -546,7 +531,7 @@ def ebay_selling_items_unique_string(query: str, lang: str, regex_to_retrieve: l
         "illustration holder", "artwork", "display case", "playmat", "plush",
         "display card", "cust0m", "rainbow rare", "doujin card", "blanket",
         "proxy","🔥","💎", "gold metal", "xl size", "fan made", "custom fan",
-        "jumbo card"
+        "jumbo card", "for kids", "rainbow secret rare"
     ]
 
     lang_extension = "com" #"fr" if lang == "fr" else "com" - To this date, fr seems broken
@@ -557,68 +542,68 @@ def ebay_selling_items_unique_string(query: str, lang: str, regex_to_retrieve: l
     # Send a request to the URL
     response = requests.get(url)
 
-    # Check if the request was successful
-    if response.status_code == 200:
-        # Parse the response content
-        soup = BeautifulSoup(response.content, 'html.parser')
-
-        # Find all items
-        items = soup.find_all('div', class_='s-item__info')
-        
-        # List to store prices of valid items
-        valid_prices = []
-        price_unit = None
-
-        for item in items:
-            title = item.find('div', class_='s-item__title')
-            price = item.find('span', class_='s-item__price')
-            if title and price:
-                title_text = title.get_text().lower()  # Convert to lower case for case insensitive comparison
-                if "to" not in price.get_text() and "à" not in price.get_text():
-                    price_text = price.get_text()
-                    # Extract price value and unit
-                    price_value = float(price_text.replace('$', '').replace(',', ''))
-                    price_unit = price_text[0]  # Assuming the unit is the first character
-                    # Check if any excluded word is in the title
-                    if not any(word in title_text for word in excluded_words) and any(regex in title_text for regex in regex_to_retrieve):
-                        valid_prices.append(price_value)
-                else:
-                    continue
-
-        # Remove weirdly low amounts
-        if len(valid_prices) > 4:  # Needs enough data
-            q1, q3 = statistics.quantiles(valid_prices, n=4)[0], statistics.quantiles(valid_prices, n=4)[2]
-            
-            lower_bound = q1 * 0.90
-            upper_bound = q3 * 1.05
-
-            filtered_prices = [p for p in valid_prices if lower_bound <= p <= upper_bound]
-
-            mean_price = round(statistics.mean(filtered_prices),2)
-            median_price = round(statistics.median(filtered_prices),2)
-            lowest_price = min(filtered_prices)
-            highest_price = max(filtered_prices)
-
-        else:
-            if len(valid_prices) > 0:
-                # Calculate mean and median prices
-                mean_price = statistics.mean(valid_prices) if valid_prices else 0
-                median_price = statistics.median(valid_prices) if valid_prices else 0
-                lowest_price = min([p for p in valid_prices])
-                highest_price = max([p for p in valid_prices])
-
-        if len(valid_prices) > 0:
-            return {
-                "mean_price": mean_price,
-                "median_price": median_price,
-                "lowest_price": lowest_price,
-                "highest_price": highest_price,
-                "price_unit": price_unit,
-                "prices": [f"{price_unit}{price:.2f}" for price in filtered_prices]
-            }
-        else:
-            return None
-    else:
+    if response.status_code != 200:
         print(f"Failed to retrieve the page. Status code: {response.status_code}")
         return None
 
+    soup = BeautifulSoup(response.content, 'html.parser')
+    items = soup.find_all('div', class_='s-item__info')
+
+    valid_prices = []
+    price_unit = None
+
+    for item in items:
+        title = item.find('div', class_='s-item__title')
+        price = item.find('span', class_='s-item__price')
+
+        if title and price:
+            title_text = title.get_text().lower()
+            price_text = price.get_text()
+
+            if "to" in price_text or "à" in price_text:
+                continue
+
+            try:
+                price_value = float(price_text.replace('$', '').replace(',', '').replace('€','').strip())
+            except ValueError:
+                continue
+
+            price_unit = price_text[0]  # e.g. "$" or "€"
+
+            if not any(word in title_text for word in excluded_words) and any(regex in title_text for regex in regex_to_retrieve):
+                print(title_text + " - " + price_text)
+                valid_prices.append(price_value)
+
+    if not valid_prices:
+        return None
+
+    # Apply MAD filtering
+    filtered_prices = filter_prices_mad(valid_prices, threshold=2.5)
+
+    if not filtered_prices:
+        return None
+
+    mean_price = round(statistics.mean(filtered_prices), 2)
+    median_price = round(statistics.median(filtered_prices), 2)
+    lowest_price = min(filtered_prices)
+    highest_price = max(filtered_prices)
+
+    return {
+        "mean_price": mean_price,
+        "median_price": median_price,
+        "lowest_price": lowest_price,
+        "highest_price": highest_price,
+        "price_unit": price_unit,
+        "prices": [f"{price_unit}{price:.2f}" for price in filtered_prices]
+    }
+
+
+def filter_prices_mad(prices, threshold=2.5):
+    """Filter out prices that are too far from the median using MAD."""
+    median = statistics.median(prices)
+    deviations = [abs(p - median) for p in prices]
+    mad = statistics.median(deviations)
+    if mad == 0:  # Avoid divide-by-zero if all prices are identical
+        return prices
+    filtered = [p for p in prices if abs(p - median) / mad < threshold]
+    return filtered
