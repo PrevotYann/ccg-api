@@ -449,6 +449,9 @@ def ebay_selling_items_fr(item: str):
         print(f"Failed to retrieve the page. Status code: {response.status_code}")
         return None"""
 
+headers = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:141.0) Gecko/20100101 Firefox/141.0"
+    }
 
 @router.post("/unique-parse/sold", tags=["ebay"])
 def ebay_sold_items_unique_string(query: str, lang: str, regex_to_retrieve: list[str]):
@@ -460,11 +463,10 @@ def ebay_sold_items_unique_string(query: str, lang: str, regex_to_retrieve: list
         "proxy","🔥","💎", "gold metal", "xl size", "fan made", "custom fan",
         "jumbo card", "for kids", "rainbow secret rare", "photo magnet"
     ]
+    regex_to_retrieve = [r.lower() for r in regex_to_retrieve]
 
-    lang_extension = "com"  # "fr" if lang == "fr" else "com"
-
-    url = f"https://www.ebay.{lang_extension}/sch/i.html?_from=R40&_nkw={query}&_sacat=1&rt=nc&LH_Sold=1&LH_Complete=1"
-    response = requests.get(url)
+    url = f"https://www.ebay.com/sch/i.html?_from=R40&_nkw={query}&_sacat=1&rt=nc&LH_Sold=1&LH_Complete=1"
+    response = requests.get(url=url, headers=headers)
 
     if response.status_code != 200:
         print(f"Failed to retrieve the page. Status code: {response.status_code}")
@@ -477,26 +479,33 @@ def ebay_sold_items_unique_string(query: str, lang: str, regex_to_retrieve: list
     price_unit = None
 
     for item in items:
-        title = item.find('div', class_='s-item__title')
-        price = item.find('span', class_='s-item__price')
+        title_tag = item.find('div', class_='s-item__title')
+        price_tag = item.find('span', class_='s-item__price')
 
-        if title and price:
-            title_text = title.get_text().lower()
-            price_text = price.get_text()
+        if not title_tag or not price_tag:
+            continue
 
-            if "to" in price_text or "à" in price_text:
-                continue
+        title_text = title_tag.get_text().lower()
 
-            try:
-                price_value = float(price_text.replace('$', '').replace(',', '').replace('€','').strip())
-            except ValueError:
-                continue
+        # Look for the actual price text inside the price_tag
+        price_text = price_tag.get_text(strip=True)
+        
+        # Skip ranges like "3,00 à 5,00 €"
+        if "to" in price_text or "à" in price_text:
+            continue
 
-            price_unit = price_text[0]  # e.g. "$" or "€"
+        # Remove currency symbols and non-breaking spaces
+        price_str = price_text.replace('€','').replace('$','').replace('\xa0','').replace(',','.').strip()
 
-            if not any(word in title_text for word in excluded_words) and any(regex in title_text for regex in regex_to_retrieve):
-                print(title_text + " - " + price_text)
-                valid_prices.append(price_value)
+        try:
+            price_value = float(price_str)
+        except ValueError:
+            continue
+
+        # Only keep items matching your filters
+        if not any(word in title_text for word in excluded_words) and any(regex in title_text for regex in regex_to_retrieve):
+            valid_prices.append(price_value)
+
 
     if not valid_prices:
         return None
@@ -534,10 +543,10 @@ def ebay_selling_items_unique_string(query: str, lang: str, regex_to_retrieve: l
         "jumbo card", "for kids", "rainbow secret rare", "photo magnet"
     ]
 
-    lang_extension = "com" #"fr" if lang == "fr" else "com" - To this date, fr seems broken
+    regex_to_retrieve = [r.lower() for r in regex_to_retrieve]
 
     # URL of the eBay search page
-    url = f"https://www.ebay.{lang_extension}/sch/i.html?_from=R40&_nkw={query}&_sacat=0"
+    url = f"https://www.ebay.com/sch/i.html?_from=R40&_nkw={query}&_sacat=0"
     
     # Send a request to the URL
     response = requests.get(url)
@@ -571,7 +580,6 @@ def ebay_selling_items_unique_string(query: str, lang: str, regex_to_retrieve: l
             price_unit = price_text[0]  # e.g. "$" or "€"
 
             if not any(word in title_text for word in excluded_words) and any(regex in title_text for regex in regex_to_retrieve):
-                print(title_text + " - " + price_text)
                 valid_prices.append(price_value)
 
     if not valid_prices:

@@ -350,6 +350,12 @@ def ebay_price_for_item(
                     lang=language,
                 regex_to_retrieve=[card.name, card.set_number]
                 )
+            if prices is None:
+                prices = ebay_selling_items_unique_string(
+                    query=set_number,
+                    lang=language,
+                regex_to_retrieve=[card.name, card.set_number]
+                )
             currency = "EURO"
         else:
             prices = ebay_sold_items_unique_string(
@@ -360,6 +366,12 @@ def ebay_price_for_item(
             )
             if prices is None:
                 prices = ebay_sold_items_unique_string(
+                    query=set_number,
+                    lang=language,
+                regex_to_retrieve=[card.name, card.set_number]
+                )
+            if prices is None:
+                prices = ebay_selling_items_unique_string(
                     query=set_number,
                     lang=language,
                 regex_to_retrieve=[card.name, card.set_number]
@@ -381,13 +393,18 @@ def ebay_price_for_item(
             )
             if prices is None:
                 prices = ebay_sold_items_unique_string(
-                    query=name + " " + card_number + extra_in_query + (" 1st" if first_edition else ""),
+                    query=name + " " + card_number + extra_in_query,
+                    lang=language,
+                regex_to_retrieve=[name, card_number]
+                )
+            if prices is None:
+                prices = ebay_selling_items_unique_string(
+                    query=name + " " + card_number + extra_in_query,
                     lang=language,
                 regex_to_retrieve=[name, card_number]
                 )
             currency = "EURO"
         else:
-            print(name + " " + card_number + " " + conditions[condition] + extra_in_query + (" 1st" if first_edition else ""))
             prices = ebay_sold_items_unique_string(
                 query=name + " " + card_number + " " + conditions[condition] + extra_in_query + (" 1st" if first_edition else ""),
                 lang=language,
@@ -395,7 +412,13 @@ def ebay_price_for_item(
             )
             if prices is None:
                 prices = ebay_sold_items_unique_string(
-                    query=name + " " + card_number + extra_in_query + (" 1st" if first_edition else ""),
+                    query=name + " " + card_number + extra_in_query,
+                    lang=language,
+                regex_to_retrieve=[name, card_number]
+                )
+            if prices is None:
+                prices = ebay_selling_items_unique_string(
+                    query=name + " " + card_number + extra_in_query,
                     lang=language,
                 regex_to_retrieve=[name, card_number]
                 )
