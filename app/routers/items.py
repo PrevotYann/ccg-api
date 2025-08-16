@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import and_, or_
+from sqlalchemy import and_, or_, text
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -128,38 +128,51 @@ def add_multiple_items_to_user_collection(
     items_input: UserItemsInput,
     db: Session = Depends(get_db),
 ):
+    user = db.query(User).filter(User.username == username).one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
     for specific_id in items_input.item_ids:
-        existing_item = get_item_from_source_table_and_id(
-            origin_table_name=table_name, origin_id=specific_id, db=db
+        # Get or create the item
+        item = (
+            get_item_from_source_table_and_id(table_name, specific_id, db)
+            or create_item(table_name, specific_id, db)
         )
 
-        if existing_item is not None:
-            item_to_add = existing_item
-        else:
-            item_to_add = create_item(
-                origin_table_name=table_name, origin_id=specific_id, db=db
+        extras = items_input.extras if items_input.extras not in ["", "null", None] else None
+
+        # Check if the user already has this item with the same condition and edition
+        existing_user_item = (
+            db.query(UserItem)
+            .filter(
+                UserItem.item_id == item.id,
+                UserItem.user_id == user.id,
+                UserItem.condition == items_input.condition,
+                UserItem.is_first_edition == items_input.is_first_edition,
+                UserItem.extras == extras
             )
-
-        extras = items_input.extras if items_input.extras not in ["", "null"] else None
-
-        existing_user_item = existing_link_user_item_condition_edition(
-            item_id=item_to_add.id,
-            username=username,
-            condition=items_input.condition,
-            is_first_edition=items_input.is_first_edition,
-            extras=extras,
-            db=db,
+            .one_or_none()
         )
 
-        if existing_user_item is None:
-            link_item_to_user_collection(
-                item_id=item_to_add.id, username=username, item_input=items_input, db=db
-            )
-        else:
+        if existing_user_item:
+            # Update quantity if already exists
             existing_user_item.quantity += items_input.quantity
+        else:
+            # Add new item to user's collection
+            new_user_item = UserItem(
+                user_id=user.id,
+                item_id=item.id,
+                quantity=items_input.quantity,
+                added_date=datetime.now(),
+                condition=items_input.condition,
+                extras=extras,
+                is_first_edition=items_input.is_first_edition,
+            )
+            db.add(new_user_item)
 
     db.commit()
     return {"message": "Items added successfully"}
+
 
 @router.post("/table/{table_name}/item/{specific_id}/condition/{condition}/first/{first_edition}/extras/{extras}/ebay/price", tags=["items"])
 def ebay_price_for_item(
