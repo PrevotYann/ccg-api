@@ -458,7 +458,7 @@ def ebay_sold_items_unique_string(query: str, lang: str, regex_to_retrieve: list
         "illustration holder", "artwork", "display case", "playmat", "plush",
         "display card", "cust0m", "rainbow rare", "doujin card", "blanket",
         "proxy","🔥","💎", "gold metal", "xl size", "fan made", "custom fan",
-        "jumbo card", "for kids", "rainbow secret rare"
+        "jumbo card", "for kids", "rainbow secret rare", "photo magnet"
     ]
 
     lang_extension = "com"  # "fr" if lang == "fr" else "com"
@@ -531,7 +531,7 @@ def ebay_selling_items_unique_string(query: str, lang: str, regex_to_retrieve: l
         "illustration holder", "artwork", "display case", "playmat", "plush",
         "display card", "cust0m", "rainbow rare", "doujin card", "blanket",
         "proxy","🔥","💎", "gold metal", "xl size", "fan made", "custom fan",
-        "jumbo card", "for kids", "rainbow secret rare"
+        "jumbo card", "for kids", "rainbow secret rare", "photo magnet"
     ]
 
     lang_extension = "com" #"fr" if lang == "fr" else "com" - To this date, fr seems broken
